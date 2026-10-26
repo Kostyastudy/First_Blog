@@ -14,6 +14,7 @@ npm run dev
 ## 常用命令
 
 ```powershell
+npm run admin      # 打开本地写作台（推荐日常改内容）
 npm run dev        # 本地实时预览
 npm run build      # 构建到 dist/
 npm run preview    # 预览构建结果
@@ -21,6 +22,21 @@ npm test           # 跑导入与搜索的单元测试
 npm run new -- "标题" --category 方法 --tags 学习,复盘
 npm run import     # 把 inbox/ 里的 Markdown、PDF、图片导入站点
 ```
+
+## 日常改内容：用写作台
+
+```powershell
+npm run admin
+```
+
+浏览器会打开 **http://127.0.0.1:4322**，可以：
+
+- 点开文章改标题、摘要、分类、标签和正文，带公式预览；
+- 把 PDF / Word / PPT 拖进「资料」页，自动生成资料库条目；
+- 改站名、简介、首页标题等设置；
+- 点「发布上线」自动构建并 `git push`，不用记命令。
+
+具体说明见 [写作台手册](docs/admin.md)。
 
 ## 内容放在哪
 
@@ -33,6 +49,7 @@ src/pages/                首页、文章页、资料库、搜索、标签、RSS
 src/plugins/katex.mjs     LaTeX 公式渲染
 scripts/import-content.mjs 导入工具
 docs/writing.md           写作说明
+docs/admin.md             写作台使用说明
 docs/deployment.md        部署与域名说明
 ```
 

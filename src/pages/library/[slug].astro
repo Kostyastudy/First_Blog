@@ -18,15 +18,16 @@ const { doc } = Astro.props;
 const publicPath = path.join(process.cwd(), "public", doc.data.file.replace(/^\//, ""));
 
 if (!existsSync(publicPath)) {
-  throw new Error(`PDF file is missing: public${doc.data.file} (referenced by library/${doc.id})`);
+  throw new Error(`File is missing: public${doc.data.file} (referenced by library/${doc.id})`);
 }
 
 const { Content } = await render(doc);
 const fileUrl = pdfSrc(doc.data.file);
+const isPdf = doc.data.file.toLowerCase().endsWith(".pdf");
 const hasBody = Boolean((doc as typeof doc & { body?: string }).body?.trim());
 ---
 
-<BaseLayout title={`${doc.data.title} · 资料库`} description={doc.data.description || "PDF 资料"}>
+<BaseLayout title={`${doc.data.title} · 资料库`} description={doc.data.description || "资料"}>
   <section class="simple-hero simple-hero--compact shell">
     <a class="article-header__back" href="/library">
       <ArrowLeft size={16} stroke-width={1.8} aria-hidden="true" />
@@ -42,7 +43,7 @@ const hasBody = Boolean((doc as typeof doc & { body?: string }).body?.trim());
     <div class="doc-actions">
       <a class="button button--primary" href={fileUrl} download>
         <Download size={16} stroke-width={1.8} aria-hidden="true" />
-        下载 PDF
+        下载文件
       </a>
       <a class="text-link" href={fileUrl} target="_blank" rel="noreferrer">
         <ExternalLink size={16} stroke-width={1.8} aria-hidden="true" />
@@ -54,16 +55,27 @@ const hasBody = Boolean((doc as typeof doc & { body?: string }).body?.trim());
   <section class="shell simple-section">
     {hasBody && <div class="prose doc-note"><Content /></div>}
 
-    <div class="pdf-frame">
-      <iframe
-        data-pdf-frame
-        data-base={fileUrl}
-        src={`${fileUrl}#view=FitH`}
-        title={`${doc.data.title} PDF`}
-        loading="lazy"
-      ></iframe>
-    </div>
-    <p class="pdf-hint">如果内嵌阅读器没有显示，请点上面的“下载 PDF”或“新窗口打开”。</p>
+    {
+      isPdf ? (
+        <>
+          <div class="pdf-frame">
+            <iframe
+              data-pdf-frame
+              data-base={fileUrl}
+              src={`${fileUrl}#view=FitH`}
+              title={`${doc.data.title} PDF`}
+              loading="lazy"
+            />
+          </div>
+          <p class="pdf-hint">如果内嵌阅读器没有显示，请点上面的“下载文件”或“新窗口打开”。</p>
+        </>
+      ) : (
+        <div class="file-card">
+          <p>这是一份 Word 文档，浏览器不能直接预览。</p>
+          <p>请点击上方“下载文件”保存到本地后用 Word 打开。</p>
+        </div>
+      )
+    }
   </section>
 </BaseLayout>
 

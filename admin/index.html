@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>水流 · 写作台</title>
+    <link rel="stylesheet" href="/vendor/katex/katex.min.css" />
+    <link rel="stylesheet" href="/admin.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand">水流 <span>写作台</span></div>
+      <div class="top-actions">
+        <a class="ghost" href="http://localhost:4321" target="_blank" rel="noreferrer">本地站点</a>
+        <a class="ghost" href="https://first-blog-wine.vercel.app" target="_blank" rel="noreferrer">线上站点</a>
+        <button class="primary" id="deployTop">发布上线</button>
+      </div>
+    </header>
+
+    <div class="layout">
+      <aside class="sidebar">
+        <button class="nav active" data-tab="posts">文章</button>
+        <button class="nav" data-tab="library">资料</button>
+        <button class="nav" data-tab="settings">站点设置</button>
+        <button class="nav" data-tab="jobs">操作与日志</button>
+        <p class="hint">改完内容点右上角「发布上线」，会自动构建并推送。</p>
+      </aside>
+
+      <main>
+        <section class="panel" id="panel-posts">
+          <div class="panel-head">
+            <div>
+              <p class="eyebrow">Posts</p>
+              <h1>文章</h1>
+            </div>
+            <button class="primary" id="newPost">新建文章</button>
+          </div>
+
+          <div class="toolbar">
+            <input id="postSearch" type="search" placeholder="搜索标题、分类或标签" />
+          </div>
+
+          <div class="list" id="postList"></div>
+
+          <div class="editor hidden" id="postEditor">
+            <div class="editor-head">
+              <button class="ghost" id="backToList">← 返回列表</button>
+              <div>
+                <button class="danger" id="deletePost">删除</button>
+                <button class="primary" id="savePost">保存</button>
+              </div>
+            </div>
+
+            <label class="field full">
+              <span>标题</span>
+              <input id="fTitle" type="text" />
+            </label>
+
+            <div class="grid">
+              <label class="field">
+                <span>分类</span>
+                <input id="fCategory" type="text" placeholder="微积分Ⅰ" />
+              </label>
+              <label class="field">
+                <span>日期</span>
+                <input id="fDate" type="date" />
+              </label>
+              <label class="field">
+                <span>标签（逗号分隔）</span>
+                <input id="fTags" type="text" placeholder="极限, 第一章" />
+              </label>
+            </div>
+
+            <label class="field full">
+              <span>摘要</span>
+              <textarea id="fDescription" rows="2"></textarea>
+            </label>
+
+            <div class="editor-tools">
+              <span>正文（Markdown）</span>
+              <button class="ghost" id="togglePreview">预览</button>
+            </div>
+            <textarea id="fBody" class="body-editor" spellcheck="false"></textarea>
+            <div class="preview hidden prose" id="preview"></div>
+          </div>
+        </section>
+
+        <section class="panel hidden" id="panel-library">
+          <div class="panel-head">
+            <div>
+              <p class="eyebrow">Library</p>
+              <h1>资料</h1>
+            </div>
+          </div>
+
+          <div class="upload-zone" id="dropZone">
+            <strong>拖入文件，或点击选择</strong>
+            <span>支持 PDF / Word / PPT / ZIP / Markdown，单文件不超过 50MB</span>
+            <input id="fileInput" type="file" multiple hidden />
+          </div>
+
+          <div class="grid">
+            <label class="field">
+              <span>默认分类</span>
+              <input id="uploadCategory" type="text" value="资料" />
+            </label>
+            <label class="field">
+              <span>默认标签（逗号分隔）</span>
+              <input id="uploadTags" type="text" />
+            </label>
+          </div>
+
+          <div class="list" id="docList"></div>
+        </section>
+
+        <section class="panel hidden" id="panel-settings">
+          <div class="panel-head">
+            <div>
+              <p class="eyebrow">Settings</p>
+              <h1>站点设置</h1>
+            </div>
+            <button class="primary" id="saveSettings">保存设置</button>
+          </div>
+
+          <div class="grid">
+            <label class="field"><span>站名</span><input id="sName" type="text" /></label>
+            <label class="field"><span>英文名</span><input id="sLatin" type="text" /></label>
+            <label class="field"><span>浏览器标题</span><input id="sTitle" type="text" /></label>
+            <label class="field"><span>作者</span><input id="sAuthor" type="text" /></label>
+            <label class="field"><span>邮箱</span><input id="sEmail" type="email" /></label>
+            <label class="field"><span>开始年份</span><input id="sYear" type="number" /></label>
+            <label class="field"><span>首页标题第一行</span><input id="sHeroTitle" type="text" /></label>
+            <label class="field"><span>首页标题第二行</span><input id="sHeroSubtitle" type="text" /></label>
+          </div>
+
+          <label class="field full"><span>站点简介（首页简介）</span><textarea id="sDescription" rows="3"></textarea></label>
+          <label class="field full"><span>页脚文案</span><input id="sFooter" type="text" /></label>
+
+          <p class="hint">保存设置后，需要点「发布上线」才会更新线上站点。</p>
+        </section>
+
+        <section class="panel hidden" id="panel-jobs">
+          <div class="panel-head">
+            <div>
+              <p class="eyebrow">Jobs</p>
+              <h1>操作与日志</h1>
+            </div>
+          </div>
+
+          <div class="job-actions">
+            <button class="ghost" data-job="import">导入 inbox</button>
+            <button class="ghost" data-job="build">只构建检查</button>
+            <button class="primary" data-job="deploy">构建并发布</button>
+          </div>
+
+          <pre class="log" id="jobLog">等待操作…</pre>
+        </section>
+      </main>
+    </div>
+
+    <div class="toast" id="toast" hidden></div>
+    <script src="/admin.js" defer></script>
+  </body>
+</html>
