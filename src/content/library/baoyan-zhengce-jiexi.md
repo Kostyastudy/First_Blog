@@ -5,7 +5,7 @@ pubDate: 2026-10-02
 category: "保研"
 folder: "保研资料"
 tags: ["保研", "政策"]
-file: "/files/baoyan-zhengce-jiexi.docx"
-bytes: 71282
+file: "/files/baoyan-zhengce-jiexi.pdf"
+bytes: 446342
 ---
-Word 文档，下载后查看。
+PDF 可直接在资料库中阅读。

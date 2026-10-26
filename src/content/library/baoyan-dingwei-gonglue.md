@@ -5,7 +5,7 @@ pubDate: 2026-10-01
 category: "保研"
 folder: "保研资料"
 tags: ["保研", "定位"]
-file: "/files/baoyan-dingwei-gonglue.docx"
-bytes: 136723
+file: "/files/baoyan-dingwei-gonglue.pdf"
+bytes: 667689
 ---
-Word 文档，下载后查看。
+PDF 可直接在资料库中阅读。

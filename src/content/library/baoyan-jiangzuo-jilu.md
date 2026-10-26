@@ -5,7 +5,7 @@ pubDate: 2026-09-24
 category: "保研"
 folder: "保研资料"
 tags: ["保研", "讲座"]
-file: "/files/baoyan-jiangzuo-jilu.docx"
-bytes: 31604
+file: "/files/baoyan-jiangzuo-jilu.pdf"
+bytes: 324221
 ---
-Word 文档，下载后查看。
+PDF 可直接在资料库中阅读。

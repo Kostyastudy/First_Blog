@@ -5,7 +5,7 @@ pubDate: 2026-09-24
 category: "事务"
 folder: "学习方法"
 tags: ["班主任", "记录"]
-file: "/files/banzhuren-jianmianhui.docx"
-bytes: 21416
+file: "/files/banzhuren-jianmianhui.pdf"
+bytes: 214987
 ---
-Word 文档，下载后查看。
+PDF 可直接在资料库中阅读。

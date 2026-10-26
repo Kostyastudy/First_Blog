@@ -32,6 +32,7 @@ const library = defineCollection({
     description: z.string().default(""),
     file: z.string(),
     pubDate: z.coerce.date(),
+    updatedDate: z.coerce.date().optional(),
     category: z.string().default("资料"),
     folder: z.string().optional(),
     tags: z.array(z.string()).default([]),
