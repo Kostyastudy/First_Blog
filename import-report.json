@@ -1,0 +1,251 @@
+{
+  "generatedAt": "2026-10-26T13:29:56.226Z",
+  "mode": "vault",
+  "dryRun": false,
+  "source": "C:\\Users\\29459\\Desktop\\微积分与线性代数-Obsidian笔记",
+  "notes": 46,
+  "skippedNotes": 0,
+  "images": 715,
+  "pdfs": 21,
+  "files": 1,
+  "unresolved": [],
+  "largePdf": [
+    {
+      "file": "微积分  上册  第3版.pdf",
+      "mb": 47.2
+    }
+  ],
+  "errors": [],
+  "written": [
+    {
+      "source": "00-首页.md",
+      "output": "src/content/posts/00-首页-3.md",
+      "title": "微积分与线性代数复习"
+    },
+    {
+      "source": "99-考前速查清单.md",
+      "output": "src/content/posts/99-考前速查清单-3.md",
+      "title": "复习检查入口"
+    },
+    {
+      "source": "微积分Ⅰ/00-微积分Ⅰ导航.md",
+      "output": "src/content/posts/00-微积分I导航-3.md",
+      "title": "微积分Ⅰ"
+    },
+    {
+      "source": "微积分Ⅰ/00-微积分Ⅰ连贯讲义.md",
+      "output": "src/content/posts/00-微积分I连贯讲义.md",
+      "title": "微积分Ⅰ连贯讲义"
+    },
+    {
+      "source": "微积分Ⅰ/01-映射与函数.md",
+      "output": "src/content/posts/01-映射与函数.md",
+      "title": "1.1 映射与函数"
+    },
+    {
+      "source": "微积分Ⅰ/02-极限的概念.md",
+      "output": "src/content/posts/02-极限的概念.md",
+      "title": "1.2 极限的概念"
+    },
+    {
+      "source": "微积分Ⅰ/03-无穷小量与无穷大量.md",
+      "output": "src/content/posts/03-无穷小量与无穷大量.md",
+      "title": "1.3 无穷小量与无穷大量"
+    },
+    {
+      "source": "微积分Ⅰ/04-极限的性质及运算法则.md",
+      "output": "src/content/posts/04-极限的性质及运算法则.md",
+      "title": "1.4 极限的性质及运算法则"
+    },
+    {
+      "source": "微积分Ⅰ/05-极限存在准则与两个重要极限.md",
+      "output": "src/content/posts/05-极限存在准则与两个重要极限.md",
+      "title": "1.5 极限存在准则、两个重要极限与等价无穷小"
+    },
+    {
+      "source": "微积分Ⅰ/06-连续函数.md",
+      "output": "src/content/posts/06-连续函数.md",
+      "title": "1.6 连续函数"
+    },
+    {
+      "source": "微积分Ⅰ/07-第一章习题课.md",
+      "output": "src/content/posts/07-第一章习题课.md",
+      "title": "第一章习题课：函数、极限与连续的整体联系"
+    },
+    {
+      "source": "微积分Ⅰ/08-课件公式附录.md",
+      "output": "src/content/posts/08-课件公式附录.md",
+      "title": "课件公式附录：幂指对与三角恒等式"
+    },
+    {
+      "source": "微积分Ⅰ/09-第一次课与课程说明.md",
+      "output": "src/content/posts/09-第一次课与课程说明.md",
+      "title": "第一次课：课程说明与微积分的来路"
+    },
+    {
+      "source": "微积分Ⅰ/10-课件版本与核对记录.md",
+      "output": "src/content/posts/10-课件版本与核对记录.md",
+      "title": "本次来源、版本与逐页核对记录"
+    },
+    {
+      "source": "微积分Ⅰ/11-例题与作业索引.md",
+      "output": "src/content/posts/11-例题与作业索引.md",
+      "title": "例题、课堂问题与作业索引"
+    },
+    {
+      "source": "微积分Ⅰ/原页核对/S01-微积分第一次课 - 信通.md",
+      "output": "src/content/posts/S01-微积分第一次课-信通.md",
+      "title": "S01 · 微积分第一次课 - 信通.pdf"
+    },
+    {
+      "source": "微积分Ⅰ/原页核对/S02-1.1 映射与函数.md",
+      "output": "src/content/posts/S02-1.1-映射与函数.md",
+      "title": "S02 · 1.1 映射与函数.pdf"
+    },
+    {
+      "source": "微积分Ⅰ/原页核对/S03-1.1 映射与函数(1).md",
+      "output": "src/content/posts/S03-1.1-映射与函数-1.md",
+      "title": "S03 · 1.1 映射与函数(1).pdf"
+    },
+    {
+      "source": "微积分Ⅰ/原页核对/S04-1.1 映射与函数(2).md",
+      "output": "src/content/posts/S04-1.1-映射与函数-2.md",
+      "title": "S04 · 1.1 映射与函数(2).pdf"
+    },
+    {
+      "source": "微积分Ⅰ/原页核对/S05-1.2 极限的概念.md",
+      "output": "src/content/posts/S05-1.2-极限的概念.md",
+      "title": "S05 · 1.2 极限的概念.pdf"
+    },
+    {
+      "source": "微积分Ⅰ/原页核对/S06-1.2 极限的概念(1).md",
+      "output": "src/content/posts/S06-1.2-极限的概念-1.md",
+      "title": "S06 · 1.2 极限的概念(1).pdf"
+    },
+    {
+      "source": "微积分Ⅰ/原页核对/S07-1.2 极限的概念(续).md",
+      "output": "src/content/posts/S07-1.2-极限的概念-续.md",
+      "title": "S07 · 1.2 极限的概念(续).pdf"
+    },
+    {
+      "source": "微积分Ⅰ/原页核对/S08-1.2 极限的概念(续)(1).md",
+      "output": "src/content/posts/S08-1.2-极限的概念-续-1.md",
+      "title": "S08 · 1.2 极限的概念(续)(1).pdf"
+    },
+    {
+      "source": "微积分Ⅰ/原页核对/S09-1.3 无穷小量 无穷大量.md",
+      "output": "src/content/posts/S09-1.3-无穷小量-无穷大量.md",
+      "title": "S09 · 1.3 无穷小量 无穷大量.pdf"
+    },
+    {
+      "source": "微积分Ⅰ/原页核对/S10-1.3 无穷小量 无穷大量(1).md",
+      "output": "src/content/posts/S10-1.3-无穷小量-无穷大量-1.md",
+      "title": "S10 · 1.3 无穷小量 无穷大量(1).pdf"
+    },
+    {
+      "source": "微积分Ⅰ/原页核对/S11-1.4 极限的性质及运算法则.md",
+      "output": "src/content/posts/S11-1.4-极限的性质及运算法则.md",
+      "title": "S11 · 1.4 极限的性质及运算法则.pdf"
+    },
+    {
+      "source": "微积分Ⅰ/原页核对/S12-1.4 极限的性质及运算法则(1).md",
+      "output": "src/content/posts/S12-1.4-极限的性质及运算法则-1.md",
+      "title": "S12 · 1.4 极限的性质及运算法则(1).pdf"
+    },
+    {
+      "source": "微积分Ⅰ/原页核对/S13-1.5 极限存在准则 两个重要极限.md",
+      "output": "src/content/posts/S13-1.5-极限存在准则-两个重要极限.md",
+      "title": "S13 · 1.5 极限存在准则 两个重要极限.pdf"
+    },
+    {
+      "source": "微积分Ⅰ/原页核对/S14-1.5 极限存在准则 两个重要极限(1).md",
+      "output": "src/content/posts/S14-1.5-极限存在准则-两个重要极限-1.md",
+      "title": "S14 · 1.5 极限存在准则 两个重要极限(1).pdf"
+    },
+    {
+      "source": "微积分Ⅰ/原页核对/S15-1.5 极限存在准则 两个重要极限(续).md",
+      "output": "src/content/posts/S15-1.5-极限存在准则-两个重要极限-续.md",
+      "title": "S15 · 1.5 极限存在准则 两个重要极限(续).pdf"
+    },
+    {
+      "source": "微积分Ⅰ/原页核对/S16-1.5 极限存在准则 两个重要极限(续)(1).md",
+      "output": "src/content/posts/S16-1.5-极限存在准则-两个重要极限-续-1.md",
+      "title": "S16 · 1.5 极限存在准则 两个重要极限(续)(1).pdf"
+    },
+    {
+      "source": "微积分Ⅰ/原页核对/S17-1.6 连续函数.md",
+      "output": "src/content/posts/S17-1.6-连续函数.md",
+      "title": "S17 · 1.6 连续函数.pdf"
+    },
+    {
+      "source": "微积分Ⅰ/原页核对/S18-1.6 连续函数(1).md",
+      "output": "src/content/posts/S18-1.6-连续函数-1.md",
+      "title": "S18 · 1.6 连续函数(1).pdf"
+    },
+    {
+      "source": "微积分Ⅰ/原页核对/S19-1.6 连续函数(续).md",
+      "output": "src/content/posts/S19-1.6-连续函数-续.md",
+      "title": "S19 · 1.6 连续函数(续).pdf"
+    },
+    {
+      "source": "微积分Ⅰ/原页核对/S20-第一章习题课.md",
+      "output": "src/content/posts/S20-第一章习题课.md",
+      "title": "S20 · 第一章习题课.pdf"
+    },
+    {
+      "source": "微积分Ⅰ/原页核对/S21-微分中值定理summary.md",
+      "output": "src/content/posts/S21-微分中值定理summary.md",
+      "title": "S21 · 微分中值定理summary.pdf"
+    },
+    {
+      "source": "微积分Ⅰ/参考-微分中值定理.md",
+      "output": "src/content/posts/参考-微分中值定理.md",
+      "title": "微分中值定理：手写资料的主题整理"
+    },
+    {
+      "source": "微积分Ⅰ/参考-教材页码索引.md",
+      "output": "src/content/posts/参考-教材页码索引.md",
+      "title": "教材：保留原书并按课堂主题定位"
+    },
+    {
+      "source": "线性代数/00-线性代数导航.md",
+      "output": "src/content/posts/00-线性代数导航.md",
+      "title": "线性代数导航"
+    },
+    {
+      "source": "线性代数/01-矩阵及其运算.md",
+      "output": "src/content/posts/01-矩阵及其运算.md",
+      "title": "1.1 矩阵及其运算"
+    },
+    {
+      "source": "线性代数/02-高斯消元法与矩阵初等变换.md",
+      "output": "src/content/posts/02-高斯消元法与矩阵初等变换.md",
+      "title": "1.2 高斯消元法与矩阵初等变换"
+    },
+    {
+      "source": "线性代数/03-逆矩阵.md",
+      "output": "src/content/posts/03-逆矩阵.md",
+      "title": "1.3 逆矩阵"
+    },
+    {
+      "source": "线性代数/04-分块矩阵.md",
+      "output": "src/content/posts/04-分块矩阵.md",
+      "title": "1.4 分块矩阵"
+    },
+    {
+      "source": "线性代数/05-n阶行列式的定义.md",
+      "output": "src/content/posts/05-n阶行列式的定义.md",
+      "title": "2.1 $n$ 阶行列式的定义"
+    },
+    {
+      "source": "线性代数/06-行列式的性质与计算.md",
+      "output": "src/content/posts/06-行列式的性质与计算.md",
+      "title": "2.2 行列式的性质与计算"
+    },
+    {
+      "source": "线性代数/07-拉普拉斯展开定理.md",
+      "output": "src/content/posts/07-拉普拉斯展开定理.md",
+      "title": "2.3 拉普拉斯展开定理"
+    }
+  ]
+}

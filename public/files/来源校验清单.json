@@ -1,0 +1,156 @@
+[
+  {
+    "id": "S01",
+    "name": "微积分第一次课 - 信通.pdf",
+    "source": "C:\\Users\\29459\\Desktop\\微积分Ⅰ\\微积分第一次课 - 信通.pdf",
+    "pages": 17,
+    "sha256": "9c35f2b3990d6aa413d389eef701fbb532360ba510a8dd340f8b8af964f0e321"
+  },
+  {
+    "id": "S02",
+    "name": "1.1 映射与函数.pdf",
+    "source": "C:\\Users\\29459\\Desktop\\微积分Ⅰ\\1.1 映射与函数.pdf",
+    "pages": 5,
+    "sha256": "2bdd0f07b8e3b0991bc4ac8ca70e32d0d0f4016daa97486692286eafaa85c2fa"
+  },
+  {
+    "id": "S03",
+    "name": "1.1 映射与函数(1).pdf",
+    "source": "C:\\Users\\29459\\Desktop\\微积分Ⅰ\\1.1 映射与函数(1).pdf",
+    "pages": 27,
+    "sha256": "37bfaf64e9f1b5d05c657463273720b3d05a52da17d6232bb5c6b31bb3fc58ec"
+  },
+  {
+    "id": "S04",
+    "name": "1.1 映射与函数(2).pdf",
+    "source": "C:\\Users\\29459\\Desktop\\微积分Ⅰ\\1.1 映射与函数(2).pdf",
+    "pages": 8,
+    "sha256": "5b73ae7b9a8feb25b0c0df1037427486e9538126d0c1ef3369448e79088b6705"
+  },
+  {
+    "id": "S05",
+    "name": "1.2 极限的概念.pdf",
+    "source": "C:\\Users\\29459\\Desktop\\微积分Ⅰ\\1.2 极限的概念.pdf",
+    "pages": 20,
+    "sha256": "a7244fc7e88a526d05b75750944473b8aa5e8c25cf1da55331b6953035c41d9b"
+  },
+  {
+    "id": "S06",
+    "name": "1.2 极限的概念(1).pdf",
+    "source": "C:\\Users\\29459\\Desktop\\微积分Ⅰ\\1.2 极限的概念(1).pdf",
+    "pages": 8,
+    "sha256": "3873b70f541b209aec984ee84783cc9c92644b730956afdd34b1df60e508de14"
+  },
+  {
+    "id": "S07",
+    "name": "1.2 极限的概念(续).pdf",
+    "source": "C:\\Users\\29459\\Desktop\\微积分Ⅰ\\1.2 极限的概念(续).pdf",
+    "pages": 12,
+    "sha256": "92f5b724539fc81a8256d01ff9e397408dfaf339c72817096cb04fe34774a23e"
+  },
+  {
+    "id": "S08",
+    "name": "1.2 极限的概念(续)(1).pdf",
+    "source": "C:\\Users\\29459\\Desktop\\微积分Ⅰ\\1.2 极限的概念(续)(1).pdf",
+    "pages": 11,
+    "sha256": "173f856b827804a61271997eb7cbb46ad6c0914afe5f16254033c07c46c0a515"
+  },
+  {
+    "id": "S09",
+    "name": "1.3 无穷小量 无穷大量.pdf",
+    "source": "C:\\Users\\29459\\Desktop\\微积分Ⅰ\\1.3 无穷小量 无穷大量.pdf",
+    "pages": 8,
+    "sha256": "084fcadfcc2d2f982f6453c6a3c42ba948ce7e999ed39b71ea65593e1eff4aec"
+  },
+  {
+    "id": "S10",
+    "name": "1.3 无穷小量 无穷大量(1).pdf",
+    "source": "C:\\Users\\29459\\Desktop\\微积分Ⅰ\\1.3 无穷小量 无穷大量(1).pdf",
+    "pages": 9,
+    "sha256": "fb69710a72c2fad4ae505e10248bf088ec2888cd1117e054ddca1340d899dc6d"
+  },
+  {
+    "id": "S11",
+    "name": "1.4 极限的性质及运算法则.pdf",
+    "source": "C:\\Users\\29459\\Desktop\\微积分Ⅰ\\1.4 极限的性质及运算法则.pdf",
+    "pages": 11,
+    "sha256": "32a88bfddc5ef68e0da4cf01968adc7378f07079c31e75b4766fc0a62b7239f6"
+  },
+  {
+    "id": "S12",
+    "name": "1.4 极限的性质及运算法则(1).pdf",
+    "source": "C:\\Users\\29459\\Desktop\\微积分Ⅰ\\1.4 极限的性质及运算法则(1).pdf",
+    "pages": 1,
+    "sha256": "aa00cad29bb11575a0c93167c226e4fd45d89b40d55c50b6fc93fdaaea525d89"
+  },
+  {
+    "id": "S13",
+    "name": "1.5 极限存在准则 两个重要极限.pdf",
+    "source": "C:\\Users\\29459\\Desktop\\微积分Ⅰ\\1.5 极限存在准则 两个重要极限.pdf",
+    "pages": 12,
+    "sha256": "0bed3602a17e6a151222f2c7f83300b6d7648e6c492208a62e157cd2996de5d0"
+  },
+  {
+    "id": "S14",
+    "name": "1.5 极限存在准则 两个重要极限(1).pdf",
+    "source": "C:\\Users\\29459\\Desktop\\微积分Ⅰ\\1.5 极限存在准则 两个重要极限(1).pdf",
+    "pages": 12,
+    "sha256": "3ea9b4163210e949ac7a09749fd3a703dd2948d9a13a635eaba5d3324ad23bc7"
+  },
+  {
+    "id": "S15",
+    "name": "1.5 极限存在准则 两个重要极限(续).pdf",
+    "source": "C:\\Users\\29459\\Desktop\\微积分Ⅰ\\1.5 极限存在准则 两个重要极限(续).pdf",
+    "pages": 10,
+    "sha256": "682fe2a078d46d0d3a304c5c7dbe6372407f39101cd47c759d72193fcbb67c36"
+  },
+  {
+    "id": "S16",
+    "name": "1.5 极限存在准则 两个重要极限(续)(1).pdf",
+    "source": "C:\\Users\\29459\\Desktop\\微积分Ⅰ\\1.5 极限存在准则 两个重要极限(续)(1).pdf",
+    "pages": 8,
+    "sha256": "20824f29a15955390ad2e38e9705c01f533f2503ce147eb1aa0e6df7286d9d7b"
+  },
+  {
+    "id": "S17",
+    "name": "1.6 连续函数.pdf",
+    "source": "C:\\Users\\29459\\Desktop\\微积分Ⅰ\\1.6 连续函数.pdf",
+    "pages": 11,
+    "sha256": "39a4134633e0d5f41598826851470442946e549a379fa7d072c11509a2eda97a"
+  },
+  {
+    "id": "S18",
+    "name": "1.6 连续函数(1).pdf",
+    "source": "C:\\Users\\29459\\Desktop\\微积分Ⅰ\\1.6 连续函数(1).pdf",
+    "pages": 13,
+    "sha256": "cd9d8be50a65abad7be2d94a61677d041c01cea6ca2396aa4b103fa9b532d680"
+  },
+  {
+    "id": "S19",
+    "name": "1.6 连续函数(续).pdf",
+    "source": "C:\\Users\\29459\\Desktop\\微积分Ⅰ\\1.6 连续函数(续).pdf",
+    "pages": 11,
+    "sha256": "dd8daedba1e675bc30a9043ecaa805d966d6ccb382355628be1d8df082bff79e"
+  },
+  {
+    "id": "S20",
+    "name": "第一章习题课.pdf",
+    "source": "C:\\Users\\29459\\Desktop\\微积分Ⅰ\\第一章习题课.pdf",
+    "pages": 5,
+    "sha256": "f67746002d257b4076f1617dcd858343ef93521e90e364ffd4420d019aab075a"
+  },
+  {
+    "id": "S21",
+    "name": "微分中值定理summary.pdf",
+    "source": "C:\\Users\\29459\\Desktop\\微积分Ⅰ\\微分中值定理summary.pdf",
+    "pages": 24,
+    "sha256": "190fc73e239777413ec807e51aa388fe026657d588d5c2749cc10506212cc75e"
+  },
+  {
+    "id": "S22",
+    "name": "微积分  上册  第3版.pdf",
+    "source": "C:\\Users\\29459\\Desktop\\微积分Ⅰ\\微积分  上册  第3版.pdf",
+    "pages": 403,
+    "sha256": "a65111759bc2954903618bde58f9df41006d8a2540aec7e2834890797621ffe5"
+  }
+]
