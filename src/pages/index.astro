@@ -17,10 +17,12 @@ const noteFolder = (category: string, folder?: string) => {
   if (category === "线性代数") return "线性代数";
   return "其他";
 };
-const folderCounts = folders.map((name) => ({
-  name,
-  count: posts.filter((post) => noteFolder(post.data.category, post.data.folder) === name).length
-}));
+const folderCounts = folders
+  .map((name) => ({
+    name,
+    count: posts.filter((post) => noteFolder(post.data.category, post.data.folder) === name).length
+  }))
+  .filter((folder) => folder.count > 0);
 const hasPosts = posts.length > 0;
 ---
 
