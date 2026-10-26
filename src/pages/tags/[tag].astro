@@ -1,0 +1,39 @@
+---
+import PostCard from "../../components/PostCard.astro";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { getAllTags, getSortedPosts } from "../../utils/posts";
+
+export async function getStaticPaths() {
+  const posts = await getSortedPosts();
+  const tags = getAllTags(posts);
+
+  return tags.map((tag) => ({
+    params: { tag: tag.name },
+    props: {
+      tag: tag.name,
+      count: tag.count,
+      posts: posts.filter((post) => post.data.tags.includes(tag.name))
+    }
+  }));
+}
+
+const { tag, count, posts } = Astro.props;
+---
+
+<BaseLayout
+  title={`#${tag} · 留痕`}
+  description={`与“${tag}”有关的成长记录，共 ${count} 篇。`}
+>
+  <section class="tag-hero shell">
+    <p class="eyebrow">主题归档</p>
+    <h1>#{tag}</h1>
+    <p>这里收录与“{tag}”有关的笔记，共 {count} 篇。</p>
+    <a class="text-link" href="/#notes">返回全部笔记</a>
+  </section>
+
+  <section class="notes-section notes-section--tag shell">
+    <div class="timeline">
+      {posts.map((post, index) => <PostCard post={post} index={index} />)}
+    </div>
+  </section>
+</BaseLayout>

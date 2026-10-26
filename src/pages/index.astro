@@ -1,0 +1,168 @@
+---
+import { ArrowDown, ArrowUpRight, Search } from "@lucide/astro";
+import PostCard from "../components/PostCard.astro";
+import BaseLayout from "../layouts/BaseLayout.astro";
+import { siteConfig } from "../config";
+import { formatDate, getAllTags, getSortedPosts } from "../utils/posts";
+
+const posts = await getSortedPosts();
+const tags = getAllTags(posts);
+const featured = posts.find((post) => post.data.featured) ?? posts[0];
+const latestPosts = posts.filter((post) => post.id !== featured.id).slice(0, 3);
+---
+
+<BaseLayout>
+  <section class="hero shell">
+    <div class="hero__copy">
+      <p class="eyebrow">个人成长档案 · {siteConfig.startYear}—</p>
+      <h1>
+        把成长写成
+        <span>一条能回看的路。</span>
+      </h1>
+      <p class="hero__lead">
+        记录学习、判断、失误和变化。不是为了证明每一天都很努力，而是为了看见那些缓慢发生、却真正重要的过程。
+      </p>
+      <div class="hero__actions">
+        <a class="button button--primary" href="#notes">
+          开始阅读
+          <ArrowDown size={17} stroke-width={2} aria-hidden="true" />
+        </a>
+        <a class="text-link" href="/about">
+          这个博客在记录什么
+          <ArrowUpRight size={16} stroke-width={1.8} aria-hidden="true" />
+        </a>
+      </div>
+    </div>
+
+    <figure class="hero__visual">
+      <img
+        src="/images/growth-atlas.webp"
+        alt="一张由道路、节点和刻度组成的抽象个人成长地图"
+        width="1200"
+        height="1500"
+      />
+      <figcaption>
+        <span>本周问题</span>
+        我真正学会的，是哪一件事？
+      </figcaption>
+    </figure>
+  </section>
+
+  <section class="signal-band" aria-label="最近更新">
+    <div class="shell signal-band__inner">
+      <div class="signal-band__label">
+        <span class="signal-dot" aria-hidden="true"></span>
+        最近更新
+      </div>
+      <a class="signal-band__article" href={`/notes/${featured.id}`}>
+        <span>{featured.data.title}</span>
+        <time datetime={featured.data.pubDate.toISOString()}>
+          {formatDate(featured.data.pubDate)}
+        </time>
+      </a>
+      <span class="signal-band__count">{posts.length} 篇记录</span>
+    </div>
+  </section>
+
+  <section class="notes-section shell" id="notes">
+    <div class="section-heading">
+      <div>
+        <p class="eyebrow">成长刻度</p>
+        <h2>从最近的记录开始</h2>
+      </div>
+      <p>
+        按主题筛选，或在全部笔记中搜索关键词。需要搜正文时用
+        <a class="text-link" href="/search">全文搜索</a>。
+      </p>
+    </div>
+
+    <div class="note-controls">
+      <label class="search-box" for="note-search">
+        <Search size={18} stroke-width={1.8} aria-hidden="true" />
+        <span class="sr-only">搜索笔记</span>
+        <input
+          id="note-search"
+          type="search"
+          placeholder="搜索标题、标签或主题"
+          autocomplete="off"
+          data-search-input
+        />
+      </label>
+
+      <div class="filter-row" role="group" aria-label="按标签筛选">
+        <button class="filter-chip is-active" type="button" data-filter-tag="all">全部</button>
+        {
+          tags.map((tag) => (
+            <button class="filter-chip" type="button" data-filter-tag={tag.name}>
+              {tag.name}
+              <span>{tag.count}</span>
+            </button>
+          ))
+        }
+      </div>
+    </div>
+
+    <p class="result-count" data-result-count aria-live="polite">显示 {posts.length} 篇笔记</p>
+
+    <div class="timeline">
+      {
+        posts.map((post, index) => (
+          <PostCard post={post} index={index} />
+        ))
+      }
+    </div>
+
+    <p class="empty-state" data-empty-state hidden>
+      没有找到匹配的笔记。换一个关键词，或选择“全部”。
+    </p>
+  </section>
+</BaseLayout>
+
+<script>
+  const postItems = Array.from(document.querySelectorAll<HTMLElement>("[data-post]"));
+  const searchInput = document.querySelector<HTMLInputElement>("[data-search-input]");
+  const filterButtons = Array.from(
+    document.querySelectorAll<HTMLButtonElement>("[data-filter-tag]")
+  );
+  const resultCount = document.querySelector<HTMLElement>("[data-result-count]");
+  const emptyState = document.querySelector<HTMLElement>("[data-empty-state]");
+  let activeTag = "all";
+
+  const normalize = (value: string) => value.trim().toLowerCase();
+
+  const updateResults = () => {
+    const query = normalize(searchInput?.value ?? "");
+    let visibleCount = 0;
+
+    postItems.forEach((post) => {
+      const tags = (post.dataset.tags ?? "").split("|");
+      const searchable = post.dataset.search ?? "";
+      const matchesTag = activeTag === "all" || tags.includes(activeTag);
+      const matchesQuery = !query || searchable.includes(query);
+      const isVisible = matchesTag && matchesQuery;
+
+      post.hidden = !isVisible;
+      if (isVisible) visibleCount += 1;
+    });
+
+    if (resultCount) resultCount.textContent = `显示 ${visibleCount} 篇笔记`;
+    if (emptyState) emptyState.hidden = visibleCount !== 0;
+  };
+
+  filterButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      activeTag = button.dataset.filterTag ?? "all";
+      filterButtons.forEach((item) => item.classList.toggle("is-active", item === button));
+      updateResults();
+    });
+  });
+
+  searchInput?.addEventListener("input", updateResults);
+  searchInput?.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      const query = searchInput.value.trim();
+      window.location.href = query ? `/search?q=${encodeURIComponent(query)}` : "/search";
+    }
+  });
+</script>

@@ -1,0 +1,28 @@
+{
+  "name": "growth-log",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "import": "node scripts/import-content.mjs",
+    "new": "node scripts/new-post.mjs",
+    "test": "node --test tests/import.test.mjs tests/search.test.mjs",
+    "make:demo": "node scripts/make-demo-assets.mjs",
+    "generate:cover": "node scripts/make-cover.mjs"
+  },
+  "dependencies": {
+    "@astrojs/markdown-satteri": "^0.4.5",
+    "@astrojs/rss": "^4.0.19",
+    "@lucide/astro": "^1.49.0",
+    "astro": "^7.3.5",
+    "katex": "^0.19.1",
+    "sharp": "^0.35.5"
+  },
+  "devDependencies": {
+    "gray-matter": "^4.0.3",
+    "typescript": "^5.9.2"
+  }
+}

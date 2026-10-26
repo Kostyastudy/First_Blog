@@ -1,0 +1,174 @@
+---
+import { render } from "astro:content";
+import { ArrowLeft, ArrowRight, Clock3, Tag } from "@lucide/astro";
+import "katex/dist/katex.min.css";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import ImageLightbox from "../../components/ImageLightbox.astro";
+import { siteConfig } from "../../config";
+import { formatDate, getReadingTime, getSortedPosts, type Post } from "../../utils/posts";
+
+interface Props {
+  post: Post;
+  previous: Post | null;
+  next: Post | null;
+}
+
+export async function getStaticPaths() {
+  const posts = await getSortedPosts();
+
+  return posts.map((post, index) => ({
+    params: { slug: post.id },
+    props: {
+      post,
+      previous: posts[index + 1] ?? null,
+      next: posts[index - 1] ?? null
+    }
+  }));
+}
+
+const { post, previous, next } = Astro.props;
+const { Content, headings } = await render(post);
+const tocHeadings = headings.filter((heading) => heading.depth === 2 || heading.depth === 3);
+const description = post.data.description || siteConfig.description;
+---
+
+<BaseLayout
+  title={`${post.data.title} · ${siteConfig.name}`}
+  description={description}
+  type="article"
+>
+  <div class="reading-progress" data-reading-progress aria-hidden="true"></div>
+
+  <article class="article">
+    <header class="article-header shell">
+      <a class="article-header__back" href="/#notes">
+        <ArrowLeft size={16} stroke-width={1.8} aria-hidden="true" />
+        返回全部笔记
+      </a>
+
+      <div class="article-header__meta">
+        <span>{post.data.category}</span>
+        <time datetime={post.data.pubDate.toISOString()}>
+          {formatDate(post.data.pubDate)}
+        </time>
+        {post.data.updatedDate && (
+          <span>更新于 {formatDate(post.data.updatedDate)}</span>
+        )}
+        <span class="article-header__read">
+          <Clock3 size={14} stroke-width={1.8} aria-hidden="true" />
+          {getReadingTime(post)}
+        </span>
+      </div>
+
+      <h1>{post.data.title}</h1>
+      <p>{description}</p>
+
+      <div class="article-header__tags">
+        {
+          post.data.tags.map((tag) => (
+            <a href={`/tags/${encodeURIComponent(tag)}`}>
+              <Tag size={13} stroke-width={1.8} aria-hidden="true" />
+              {tag}
+            </a>
+          ))
+        }
+      </div>
+    </header>
+
+    <div class="article-layout shell">
+      <aside class="article-aside">
+        {
+          tocHeadings.length > 0 && (
+            <nav class="toc" aria-label="文章目录">
+              <p>本文目录</p>
+              <ol>
+                {tocHeadings.map((heading) => (
+                  <li class={`toc__item toc__item--h${heading.depth}`}>
+                    <a href={`#${heading.slug}`}>{heading.text}</a>
+                  </li>
+                ))}
+              </ol>
+            </nav>
+          )
+        }
+      </aside>
+
+      <div class="prose" data-article-body>
+        <Content />
+      </div>
+    </div>
+  </article>
+
+  <nav class="article-nav shell" aria-label="上一篇和下一篇">
+    <div>
+      {
+        previous && (
+          <a href={`/notes/${previous.id}`}>
+            <span>更早一篇</span>
+            <strong>{previous.data.title}</strong>
+          </a>
+        )
+      }
+    </div>
+    <div class="article-nav__next">
+      {
+        next && (
+          <a href={`/notes/${next.id}`}>
+            <span>更新一篇</span>
+            <strong>{next.data.title}</strong>
+            <ArrowRight size={18} stroke-width={1.8} aria-hidden="true" />
+          </a>
+        )
+      }
+    </div>
+  </nav>
+
+  <ImageLightbox />
+</BaseLayout>
+
+<script>
+  const progress = document.querySelector<HTMLElement>("[data-reading-progress]");
+  const article = document.querySelector<HTMLElement>("[data-article-body]");
+
+  const updateProgress = () => {
+    if (!progress || !article) return;
+
+    const rect = article.getBoundingClientRect();
+    const articleTop = window.scrollY + rect.top;
+    const articleBottom = articleTop + article.offsetHeight;
+    const available = Math.max(articleBottom - window.innerHeight, 1);
+    const current = Math.min(Math.max(window.scrollY - articleTop, 0), available);
+    progress.style.transform = `scaleX(${current / available})`;
+  };
+
+  updateProgress();
+  window.addEventListener("scroll", updateProgress, { passive: true });
+  window.addEventListener("resize", updateProgress);
+
+  article?.querySelectorAll<HTMLPreElement>("pre").forEach((pre) => {
+    if (pre.parentElement?.classList.contains("code-shell")) return;
+
+    const shell = document.createElement("div");
+    shell.className = "code-shell";
+    pre.parentNode?.insertBefore(shell, pre);
+    shell.appendChild(pre);
+
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "code-copy";
+    button.textContent = "复制";
+    button.addEventListener("click", async () => {
+      const text = pre.querySelector("code")?.textContent ?? "";
+      try {
+        await navigator.clipboard.writeText(text);
+        button.textContent = "已复制";
+        window.setTimeout(() => (button.textContent = "复制"), 1500);
+      } catch {
+        button.textContent = "复制失败";
+        window.setTimeout(() => (button.textContent = "复制"), 1500);
+      }
+    });
+
+    shell.appendChild(button);
+  });
+</script>

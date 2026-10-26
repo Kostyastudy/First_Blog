@@ -1,0 +1,50 @@
+<dialog class="lightbox" data-lightbox aria-label="查看图片大图">
+  <button class="lightbox__close" type="button" data-lightbox-close aria-label="关闭大图">×</button>
+  <img data-lightbox-img alt="" />
+</dialog>
+
+<script>
+  const dialog = document.querySelector<HTMLDialogElement>("[data-lightbox]");
+  const image = document.querySelector<HTMLImageElement>("[data-lightbox-img]");
+  const closeButton = document.querySelector<HTMLButtonElement>("[data-lightbox-close]");
+  const article = document.querySelector<HTMLElement>("[data-article-body]");
+
+  if (dialog && image && article) {
+    const open = (source: HTMLImageElement) => {
+      image.src = source.currentSrc || source.src;
+      image.alt = source.alt;
+      dialog.showModal();
+      document.body.style.overflow = "hidden";
+      closeButton?.focus();
+    };
+
+    const close = () => {
+      dialog.close();
+      document.body.style.overflow = "";
+    };
+
+    article.querySelectorAll<HTMLImageElement>("img").forEach((img) => {
+      img.loading = "lazy";
+      img.decoding = "async";
+      img.tabIndex = 0;
+      img.setAttribute("role", "button");
+      img.setAttribute("aria-label", `${img.alt || "文章图片"}，点击查看大图`);
+
+      img.addEventListener("click", () => open(img));
+      img.addEventListener("keydown", (event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          open(img);
+        }
+      });
+    });
+
+    closeButton?.addEventListener("click", close);
+    dialog.addEventListener("click", (event) => {
+      if (event.target === dialog) close();
+    });
+    dialog.addEventListener("close", () => {
+      document.body.style.overflow = "";
+    });
+  }
+</script>

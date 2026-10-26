@@ -1,0 +1,84 @@
+---
+import { ArrowUpRight, Mail, NotebookPen } from "@lucide/astro";
+import BaseLayout from "../layouts/BaseLayout.astro";
+import { siteConfig } from "../config";
+
+const principles = [
+  {
+    title: "记录事实，不急着下结论",
+    body: "先把发生了什么写清楚，再判断哪些方法值得保留。留下证据，也留下当时的不确定。"
+  },
+  {
+    title: "让方法接受真实生活的检验",
+    body: "计划必须能进入普通的日子，包括疲惫、分心和突发变化。能持续的部分，才是自己的方法。"
+  },
+  {
+    title: "保留缓慢发生的变化",
+    body: "成长不一定每天都有新名字。有时它只是少一次内耗、多一次启动，或者更早发现自己的错误。"
+  }
+];
+---
+
+<BaseLayout
+  title={`关于 · ${siteConfig.name}`}
+  description="这里记录什么，以及我如何选择、写作和复盘自己的成长笔记。"
+>
+  <section class="about-hero shell">
+    <p class="eyebrow">关于这个博客</p>
+    <h1>为变化留下一份<br />不夸张、也不轻易消失的证据。</h1>
+    <p class="about-hero__lead">
+      这里记录我在学习、工作、习惯和长期目标上的真实尝试。文章不会承诺一种适合所有人的答案，只尽量把问题、过程和结果写清楚。
+    </p>
+  </section>
+
+  <section class="principles-section shell">
+    <div class="section-heading section-heading--compact">
+      <div>
+        <p class="eyebrow">写作原则</p>
+        <h2>三件我会一直坚持的事</h2>
+      </div>
+    </div>
+
+    <div class="principle-list">
+      {
+        principles.map((principle, index) => (
+          <article class="principle">
+            <span class="principle__index">{String(index + 1).padStart(2, "0")}</span>
+            <div>
+              <h3>{principle.title}</h3>
+              <p>{principle.body}</p>
+            </div>
+          </article>
+        ))
+      }
+    </div>
+  </section>
+
+  <section class="about-now">
+    <div class="shell about-now__inner">
+      <div>
+        <p class="eyebrow">现在</p>
+        <h2>一边生活，一边校准。</h2>
+      </div>
+      <div class="about-now__copy">
+        <p>
+          这个站点始于 {siteConfig.startYear} 年，目前正在建立一套轻量的写作和复盘节奏。文章会优先解决我已经真实遇到的问题，而不是追逐热门主题。
+        </p>
+        <div class="about-now__links">
+          <a class="text-link" href="/#notes">
+            <NotebookPen size={17} stroke-width={1.8} aria-hidden="true" />
+            阅读全部笔记
+          </a>
+          <a class="text-link" href={`mailto:${siteConfig.email}`}>
+            <Mail size={17} stroke-width={1.8} aria-hidden="true" />
+            {siteConfig.email}
+          </a>
+          <a class="text-link" href="/rss.xml">
+            <ArrowUpRight size={17} stroke-width={1.8} aria-hidden="true" />
+            订阅 RSS
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+</BaseLayout>

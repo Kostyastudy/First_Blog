@@ -1,0 +1,38 @@
+---
+import { Moon, Sun } from "@lucide/astro";
+---
+
+<button
+  class="icon-button theme-toggle"
+  type="button"
+  data-theme-toggle
+  aria-label="切换深浅色"
+  title="切换深浅色"
+>
+  <Sun class="theme-toggle__sun" size={18} stroke-width={1.8} aria-hidden="true" />
+  <Moon class="theme-toggle__moon" size={18} stroke-width={1.8} aria-hidden="true" />
+</button>
+
+<script>
+  const root = document.documentElement;
+  const toggles = document.querySelectorAll<HTMLButtonElement>("[data-theme-toggle]");
+
+  const syncThemeLabel = () => {
+    const isDark = root.dataset.theme === "dark";
+    toggles.forEach((toggle) => {
+      toggle.setAttribute("aria-label", isDark ? "切换到浅色模式" : "切换到深色模式");
+      toggle.setAttribute("title", isDark ? "切换到浅色模式" : "切换到深色模式");
+    });
+  };
+
+  toggles.forEach((toggle) => {
+    toggle.addEventListener("click", () => {
+      const nextTheme = root.dataset.theme === "dark" ? "light" : "dark";
+      root.dataset.theme = nextTheme;
+      localStorage.setItem("growth-theme", nextTheme);
+      syncThemeLabel();
+    });
+  });
+
+  syncThemeLabel();
+</script>

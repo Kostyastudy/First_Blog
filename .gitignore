@@ -1,0 +1,9 @@
+node_modules/
+dist/
+.astro/
+outputs/qa/
+.DS_Store
+*.log
+.env
+inbox/_imported/
+legacy-site-2026-08-12/

@@ -1,0 +1,80 @@
+---
+import SiteHeader from "../components/SiteHeader.astro";
+import { siteConfig } from "../config";
+import "../styles/global.css";
+
+interface Props {
+  title?: string;
+  description?: string;
+  image?: string;
+  type?: "website" | "article";
+}
+
+const {
+  title = siteConfig.title,
+  description = siteConfig.description,
+  image = "/images/growth-atlas.webp",
+  type = "website"
+} = Astro.props;
+
+const canonicalURL = new URL(Astro.url.pathname, Astro.site);
+const imageURL = new URL(image, Astro.site);
+const currentYear = new Date().getFullYear();
+---
+
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width" />
+    <meta name="generator" content={Astro.generator} />
+    <meta name="theme-color" content="#edf1e8" />
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonicalURL} />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="alternate" type="application/rss+xml" title={siteConfig.title} href="/rss.xml" />
+
+    <meta property="og:type" content={type} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonicalURL} />
+    <meta property="og:image" content={imageURL} />
+    <meta name="twitter:card" content="summary_large_image" />
+
+    <title>{title}</title>
+
+    <script is:inline>
+      (() => {
+        const storedTheme = localStorage.getItem("growth-theme");
+        const preferredTheme = window.matchMedia("(prefers-color-scheme: dark)").matches
+          ? "dark"
+          : "light";
+        document.documentElement.dataset.theme = storedTheme || preferredTheme;
+      })();
+    </script>
+  </head>
+
+  <body>
+    <SiteHeader />
+    <main id="main-content">
+      <slot />
+    </main>
+
+    <footer class="site-footer">
+      <div class="shell site-footer__inner">
+        <div>
+          <p class="site-footer__title">{siteConfig.name}</p>
+          <p>持续记录，允许缓慢，保留好奇。</p>
+        </div>
+        <div class="site-footer__links">
+          <a href="/rss.xml">RSS</a>
+          <a href={`mailto:${siteConfig.email}`}>写信</a>
+          <a href="/about">关于</a>
+        </div>
+        <p class="site-footer__copyright">
+          © {siteConfig.startYear}–{currentYear} {siteConfig.author}
+        </p>
+      </div>
+    </footer>
+  </body>
+</html>

@@ -1,0 +1,56 @@
+---
+import { ArrowUpRight, Clock3 } from "@lucide/astro";
+import type { Post } from "../utils/posts";
+import { formatDate, getReadingTime } from "../utils/posts";
+
+interface Props {
+  post: Post;
+  index: number;
+}
+
+const { post, index } = Astro.props;
+const href = `/notes/${post.id}`;
+const searchText = [
+  post.data.title,
+  post.data.description,
+  post.data.category,
+  ...post.data.tags
+]
+  .join(" ")
+  .toLowerCase();
+---
+
+<article
+  class="timeline-post"
+  data-post
+  data-tags={post.data.tags.join("|")}
+  data-search={searchText}
+>
+  <div class="timeline-post__rail" aria-hidden="true">
+    <span>{String(index + 1).padStart(2, "0")}</span>
+  </div>
+
+  <div class="timeline-post__body">
+    <div class="post-meta">
+      <time datetime={post.data.pubDate.toISOString()}>{formatDate(post.data.pubDate)}</time>
+      <span>{post.data.category}</span>
+      <span class="post-meta__read">
+        <Clock3 size={13} stroke-width={1.8} aria-hidden="true" />
+        {getReadingTime(post)}
+      </span>
+    </div>
+
+    <h3 class="timeline-post__title">
+      <a href={href}>
+        <span>{post.data.title}</span>
+        <ArrowUpRight size={22} stroke-width={1.7} aria-hidden="true" />
+      </a>
+    </h3>
+
+    <p class="timeline-post__description">{post.data.description}</p>
+
+    <div class="tag-list" aria-label="文章标签">
+      {post.data.tags.map((tag) => <span class="tag">#{tag}</span>)}
+    </div>
+  </div>
+</article>

@@ -1,0 +1,146 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import { siteConfig } from "../config";
+---
+
+<BaseLayout title={`搜索 · ${siteConfig.name}`} description="搜索文章标题、标签和正文。">
+  <section class="simple-hero simple-hero--compact shell">
+    <p class="eyebrow">搜索</p>
+    <h1>找一篇笔记</h1>
+    <p>支持中文与英文关键词，空格分隔的多个词需要同时命中。按 <kbd>/</kbd> 可以快速聚焦。</p>
+  </section>
+
+  <section class="shell simple-section">
+    <form class="search-form" role="search" data-search-form action="/search" method="get">
+      <label class="sr-only" for="search-page-input">搜索关键词</label>
+      <input
+        id="search-page-input"
+        type="search"
+        name="q"
+        placeholder="例如：极限、复盘、PDF"
+        autocomplete="off"
+        data-search-page-input
+      />
+      <button type="submit">搜索</button>
+    </form>
+
+    <p class="search-status" data-search-status aria-live="polite">输入关键词开始搜索。</p>
+    <ol class="search-results" data-search-results></ol>
+  </section>
+</BaseLayout>
+
+<script>
+  import { escapeHtml, makeSnippet, parseTerms, searchEntries } from "../utils/search.js";
+
+  const form = document.querySelector<HTMLFormElement>("[data-search-form]");
+  const input = document.querySelector<HTMLInputElement>("[data-search-page-input]");
+  const status = document.querySelector<HTMLElement>("[data-search-status]");
+  const results = document.querySelector<HTMLElement>("[data-search-results]");
+
+  type Entry = {
+    id: string;
+    type: "post" | "doc";
+    title: string;
+    description?: string;
+    tags?: string[];
+    category?: string;
+    date: string;
+    url: string;
+    text: string;
+  };
+
+  let entries: Entry[] = [];
+  let ready = false;
+  let timer: number | undefined;
+
+  const formatDate = (value: string) => {
+    const date = new Date(value);
+    if (Number.isNaN(date.valueOf())) return "";
+    return new Intl.DateTimeFormat("zh-CN", { year: "numeric", month: "long", day: "numeric" }).format(date);
+  };
+
+  const render = () => {
+    if (!input || !results || !status) return;
+
+    const query = input.value.trim();
+    const terms = parseTerms(query);
+
+    if (!ready) {
+      status.textContent = "正在加载搜索索引…";
+      return;
+    }
+
+    if (!terms.length) {
+      status.textContent = "输入关键词开始搜索。";
+      results.innerHTML = "";
+      return;
+    }
+
+    const matches = searchEntries(entries, query) as Entry[];
+
+    status.textContent = matches.length
+      ? `找到 ${matches.length} 条结果。`
+      : `没有找到“${query}”相关的内容。`;
+
+    results.innerHTML = matches
+      .map((entry) => {
+        const label = entry.type === "doc" ? "资料" : entry.category || "文章";
+        const snippet = makeSnippet(entry.text, terms);
+        return `<li class="search-result">
+          <a class="search-result__title" href="${escapeHtml(entry.url)}">${escapeHtml(entry.title)}</a>
+          <p class="search-result__meta">${escapeHtml(label)} · ${formatDate(entry.date)}</p>
+          ${snippet ? `<p class="search-result__snippet">${snippet}</p>` : ""}
+        </li>`;
+      })
+      .join("");
+  };
+
+  const syncUrl = () => {
+    if (!input) return;
+    const url = new URL(window.location.href);
+    if (input.value.trim()) url.searchParams.set("q", input.value.trim());
+    else url.searchParams.delete("q");
+    window.history.replaceState({}, "", url);
+  };
+
+  const update = () => {
+    syncUrl();
+    render();
+  };
+
+  const schedule = () => {
+    window.clearTimeout(timer);
+    timer = window.setTimeout(update, 120);
+  };
+
+  if (input) {
+    const initial = new URL(window.location.href).searchParams.get("q") ?? "";
+    input.value = initial;
+  }
+
+  fetch("/search-index.json")
+    .then((response) => (response.ok ? response.json() : []))
+    .then((data: Entry[]) => {
+      entries = Array.isArray(data) ? data : [];
+      ready = true;
+      render();
+    })
+    .catch(() => {
+      ready = true;
+      if (status) status.textContent = "搜索索引加载失败，请刷新页面重试。";
+    });
+
+  input?.addEventListener("input", schedule);
+  form?.addEventListener("submit", (event) => {
+    event.preventDefault();
+    window.clearTimeout(timer);
+    update();
+  });
+
+  window.addEventListener("keydown", (event) => {
+    if (event.key === "/" && document.activeElement !== input) {
+      event.preventDefault();
+      input?.focus();
+    }
+  });
+</script>

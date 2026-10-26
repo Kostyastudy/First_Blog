@@ -1,0 +1,87 @@
+---
+import { Menu, X } from "@lucide/astro";
+import { siteConfig } from "../config";
+import ThemeToggle from "./ThemeToggle.astro";
+
+const pathname = Astro.url.pathname;
+---
+
+<header class="site-header" data-site-header>
+  <a class="skip-link" href="#main-content">跳到正文</a>
+
+  <div class="site-header__inner shell">
+    <a class="wordmark" href="/" aria-label={`${siteConfig.name}首页`}>
+      <span class="wordmark__mark" aria-hidden="true"></span>
+      <span class="wordmark__text">
+        <strong>{siteConfig.name}</strong>
+        <small>{siteConfig.latinName}</small>
+      </span>
+    </a>
+
+    <nav class="site-nav" id="site-nav" data-site-nav aria-label="主导航">
+      {
+        siteConfig.nav.map((item) => {
+          const isActive =
+            item.href === "/"
+              ? pathname === "/"
+              : item.href === "/#notes"
+                ? pathname.startsWith("/notes") || pathname.startsWith("/tags")
+                : pathname.startsWith(item.href);
+
+          return (
+            <a
+              href={item.href}
+              class={isActive ? "site-nav__link is-active" : "site-nav__link"}
+              aria-current={isActive ? "page" : undefined}
+            >
+              {item.label}
+            </a>
+          );
+        })
+      }
+    </nav>
+
+    <div class="site-header__actions">
+      <ThemeToggle />
+      <button
+        class="icon-button menu-toggle"
+        type="button"
+        data-menu-toggle
+        aria-controls="site-nav"
+        aria-expanded="false"
+        aria-label="打开菜单"
+      >
+        <Menu class="menu-toggle__open" size={20} stroke-width={1.8} aria-hidden="true" />
+        <X class="menu-toggle__close" size={20} stroke-width={1.8} aria-hidden="true" />
+      </button>
+    </div>
+  </div>
+</header>
+
+<script>
+  const menuButton = document.querySelector<HTMLButtonElement>("[data-menu-toggle]");
+  const nav = document.querySelector<HTMLElement>("[data-site-nav]");
+
+  if (menuButton && nav) {
+    const closeMenu = () => {
+      nav.dataset.open = "false";
+      menuButton.setAttribute("aria-expanded", "false");
+      menuButton.setAttribute("aria-label", "打开菜单");
+    };
+
+    menuButton.addEventListener("click", () => {
+      const isOpen = nav.dataset.open === "true";
+      nav.dataset.open = String(!isOpen);
+      menuButton.setAttribute("aria-expanded", String(!isOpen));
+      menuButton.setAttribute("aria-label", isOpen ? "打开菜单" : "关闭菜单");
+    });
+
+    nav.querySelectorAll("a").forEach((link) => {
+      link.addEventListener("click", closeMenu);
+    });
+
+    window.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") closeMenu();
+    });
+  }
+</script>
