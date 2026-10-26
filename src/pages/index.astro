@@ -7,8 +7,8 @@ import { formatDate, getAllTags, getSortedPosts } from "../utils/posts";
 
 const posts = await getSortedPosts();
 const tags = getAllTags(posts);
-const featured = posts.find((post) => post.data.featured) ?? posts[0];
-const latestPosts = posts.filter((post) => post.id !== featured.id).slice(0, 3);
+const featured = posts.find((post) => post.data.featured) ?? posts[0] ?? null;
+const hasPosts = posts.length > 0;
 ---
 
 <BaseLayout>
@@ -54,12 +54,16 @@ const latestPosts = posts.filter((post) => post.id !== featured.id).slice(0, 3);
         <span class="signal-dot" aria-hidden="true"></span>
         最近更新
       </div>
-      <a class="signal-band__article" href={`/notes/${featured.id}`}>
-        <span>{featured.data.title}</span>
-        <time datetime={featured.data.pubDate.toISOString()}>
-          {formatDate(featured.data.pubDate)}
-        </time>
-      </a>
+      {featured ? (
+        <a class="signal-band__article" href={`/notes/${featured.id}`}>
+          <span>{featured.data.title}</span>
+          <time datetime={featured.data.pubDate.toISOString()}>
+            {formatDate(featured.data.pubDate)}
+          </time>
+        </a>
+      ) : (
+        <span class="signal-band__article">还没有发布文章</span>
+      )}
       <span class="signal-band__count">{posts.length} 篇记录</span>
     </div>
   </section>
@@ -76,45 +80,55 @@ const latestPosts = posts.filter((post) => post.id !== featured.id).slice(0, 3);
       </p>
     </div>
 
-    <div class="note-controls">
-      <label class="search-box" for="note-search">
-        <Search size={18} stroke-width={1.8} aria-hidden="true" />
-        <span class="sr-only">搜索笔记</span>
-        <input
-          id="note-search"
-          type="search"
-          placeholder="搜索标题、标签或主题"
-          autocomplete="off"
-          data-search-input
-        />
-      </label>
+    {
+      hasPosts ? (
+        <>
+          <div class="note-controls">
+            <label class="search-box" for="note-search">
+              <Search size={18} stroke-width={1.8} aria-hidden="true" />
+              <span class="sr-only">搜索笔记</span>
+              <input
+                id="note-search"
+                type="search"
+                placeholder="搜索标题、标签或主题"
+                autocomplete="off"
+                data-search-input
+              />
+            </label>
 
-      <div class="filter-row" role="group" aria-label="按标签筛选">
-        <button class="filter-chip is-active" type="button" data-filter-tag="all">全部</button>
-        {
-          tags.map((tag) => (
-            <button class="filter-chip" type="button" data-filter-tag={tag.name}>
-              {tag.name}
-              <span>{tag.count}</span>
-            </button>
-          ))
-        }
-      </div>
-    </div>
+            <div class="filter-row" role="group" aria-label="按标签筛选">
+              <button class="filter-chip is-active" type="button" data-filter-tag="all">全部</button>
+              {tags.map((tag) => (
+                <button class="filter-chip" type="button" data-filter-tag={tag.name}>
+                  {tag.name}
+                  <span>{tag.count}</span>
+                </button>
+              ))}
+            </div>
+          </div>
 
-    <p class="result-count" data-result-count aria-live="polite">显示 {posts.length} 篇笔记</p>
+          <p class="result-count" data-result-count aria-live="polite">显示 {posts.length} 篇笔记</p>
 
-    <div class="timeline">
-      {
-        posts.map((post, index) => (
-          <PostCard post={post} index={index} />
-        ))
-      }
-    </div>
+          <div class="timeline">
+            {posts.map((post, index) => (
+              <PostCard post={post} index={index} />
+            ))}
+          </div>
 
-    <p class="empty-state" data-empty-state hidden>
-      没有找到匹配的笔记。换一个关键词，或选择“全部”。
-    </p>
+          <p class="empty-state" data-empty-state hidden>
+            没有找到匹配的笔记。换一个关键词，或选择“全部”。
+          </p>
+        </>
+      ) : (
+        <div class="empty-blog">
+          <p>还没有发布文章。</p>
+          <p>
+            把 Markdown 放进 <code>inbox/</code> 后运行 <code>npm run import</code>，或直接在
+            <code>src/content/posts/</code> 新建 <code>.md</code> 文件。
+          </p>
+        </div>
+      )
+    }
   </section>
 </BaseLayout>
 

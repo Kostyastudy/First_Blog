@@ -58,6 +58,8 @@ $$
 
 发布后访问 `/notes/我的笔记`。完整字段、图片、PDF、草稿说明见 [写作说明](docs/writing.md)。
 
+想删示例文章、改站名、配色、布局或动画，见 [改造手册](docs/customize.md)。
+
 ## 导入已有笔记（Obsidian）
 
 先把待发布的 Markdown、图片、PDF 放进 `inbox/`，或直接指向 Obsidian 仓库。建议先预演：

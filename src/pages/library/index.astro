@@ -57,7 +57,9 @@ const tags = Object.entries(tagCounts).sort((a, b) => b[1] - a[1]);
       }
     </ul>
 
-    <p class="empty-state" data-doc-empty hidden>这个标签下还没有资料。</p>
+    <p class="empty-state" data-doc-empty hidden={docs.length > 0}>
+      还没有资料。把 PDF 放进 <code>public/files/</code>，在 <code>src/content/library/</code> 建一个条目，或运行 <code>npm run import</code>。
+    </p>
   </section>
 </BaseLayout>
 

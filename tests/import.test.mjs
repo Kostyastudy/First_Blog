@@ -152,3 +152,29 @@ test("dry run writes nothing", async () => {
     await rm(root, { recursive: true, force: true });
   }
 });
+
+test("importing the same vault twice does not create duplicates", async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), "blog-idempotent-"));
+
+  try {
+    for (let round = 0; round < 2; round += 1) {
+      const result = spawnSync(
+        process.execPath,
+        ["scripts/import-content.mjs", "--vault", vault, "--root", root],
+        { cwd: projectRoot, encoding: "utf8" }
+      );
+      assert.equal(result.status, 0, result.stderr || result.stdout);
+
+      if (round === 1) {
+        assert.match(result.stdout, /跳过已存在 2 篇/);
+      }
+    }
+
+    const posts = readdirSync(path.join(root, "src", "content", "posts")).filter((name) =>
+      name.endsWith(".md")
+    );
+    assert.equal(posts.length, 2);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});

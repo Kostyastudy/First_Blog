@@ -171,7 +171,7 @@ const slugFor = (() => {
     const base = toSlug(value);
     let slug = base;
     let counter = 2;
-    while (used.has(slug) || (existingSlugs.has(slug) && !args.force)) {
+    while (used.has(slug)) {
       slug = `${base}-${counter}`;
       counter += 1;
     }
@@ -366,6 +366,13 @@ printReport();
 
 async function importNote(record) {
   currentNoteRelative = record.relative;
+  const outputPath = path.join(outPosts, `${record.slug}.md`);
+
+  if (existsSync(outputPath) && !args.force) {
+    stats.skippedNotes += 1;
+    return;
+  }
+
   const raw = await readFile(record.file, "utf8");
   const parsed = matter(raw);
   const data = parsed.data ?? {};
@@ -397,16 +404,16 @@ async function importNote(record) {
   });
   body = body.trim();
 
-  const frontmatter = buildFrontmatter({ title, description, date, category, tags });
-  const outputPath = path.join(outPosts, `${record.slug}.md`);
-  const exists = existsSync(outputPath);
+  const frontmatter = buildFrontmatter({
+    title,
+    description,
+    date,
+    category,
+    tags,
+    extra: [`importSource: ${JSON.stringify(record.relative)}`]
+  });
 
   stats.notes += 1;
-
-  if (exists && !args.force) {
-    stats.skippedNotes += 1;
-    return;
-  }
 
   if (!dryRun) {
     await writeFile(outputPath, `${frontmatter}${body}\n`, "utf8");

@@ -1995,3 +1995,22 @@ kbd {
     width: 100%;
   }
 }
+
+.empty-blog {
+  margin-top: 24px;
+  padding: 36px 0;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+}
+
+.empty-blog p {
+  margin: 6px 0;
+}
+
+.empty-blog code {
+  padding: 1px 6px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+}
