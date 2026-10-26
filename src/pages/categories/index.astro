@@ -1,0 +1,38 @@
+---
+import { Folder } from "@lucide/astro";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { getAllCategories, getSortedPosts } from "../../utils/posts";
+
+const posts = await getSortedPosts();
+const categories = getAllCategories(posts);
+---
+
+<BaseLayout title="分类" description="按主题浏览全部笔记。">
+  <section class="simple-hero shell">
+    <p class="eyebrow">分类</p>
+    <h1>按主题找笔记</h1>
+    <p>按文章的 category 自动归类，共 {posts.length} 篇。</p>
+  </section>
+
+  <section class="shell simple-section">
+    <ul class="doc-list">
+      {
+        categories.map((category) => (
+          <li class="doc-row">
+            <Folder size={20} stroke-width={1.6} aria-hidden="true" />
+            <div class="doc-row__body">
+              <a class="doc-row__title" href={`/categories/${encodeURIComponent(category.name)}`}>
+                {category.name}
+              </a>
+              <p class="doc-row__meta">{category.count} 篇笔记</p>
+            </div>
+          </li>
+        ))
+      }
+    </ul>
+
+    {categories.length === 0 && (
+      <p class="empty-state">还没有文章。导入或新建笔记后，这里会按 category 自动归类。</p>
+    )}
+  </section>
+</BaseLayout>

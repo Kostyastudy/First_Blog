@@ -335,6 +335,31 @@ import BaseLayout from "../layouts/BaseLayout.astro";
 
 ---
 
+### 5.8 用文件夹和分类归类文章
+
+顶栏现在有「分类」，数据来自每篇文章 frontmatter 里的 `category`：
+
+- 分类总览：`/categories`
+- 单个分类：`/categories/<分类名>`
+- 改分类只改 `category`，文章 URL 不变。
+
+也可以同时用文件夹整理源文件，文件夹会出现在 URL 里：
+
+```text
+src/content/posts/微积分/02-极限的概念.md
+        ↓
+/notes/微积分/02-极限的概念
+```
+
+注意：
+
+- 文件夹名**不会**自动变成 `category`，分类页只读 frontmatter；
+- 已发布的文章不要随意移动或改名，URL 会变，旧链接会 404；
+- Obsidian 导入时，源文件的顶层文件夹会自动写进 `category`；
+- 文件名在同一个文件夹内要唯一，否则构建会报冲突。
+
+新增分类不需要改代码：在任何文章的 frontmatter 里写一个新的 `category`，重新构建就会自动出现对应的分类页。
+
 ## 6. 改动画
 
 首页标题和主视觉的入场动画在 `global.css` 的：

@@ -1,14 +1,15 @@
 export const siteConfig = {
-  name: "留痕",
-  latinName: "TRACE",
-  title: "留痕 · 个人成长档案",
-  description: "记录成长、学习方法与阶段复盘。把模糊的经历，整理成可以回看的路径。",
+  name: "水流",
+  latinName: "Water Flow",
+  title: "水流 · Kostya的个人成长档案",
+  description: "本档案记录了学习生活中的点滴。水流的目标是成为一个知识库，分享有价值的内容。",
   author: "我",
-  email: "hello@example.com",
+  email: "kostyavaxio@gmail.com",
   startYear: 2026,
   nav: [
     { label: "首页", href: "/" },
     { label: "文章", href: "/#notes" },
+    { label: "分类", href: "/categories" },
     { label: "资料库", href: "/library" },
     { label: "搜索", href: "/search" },
     { label: "关于", href: "/about" }

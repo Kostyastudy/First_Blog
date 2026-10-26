@@ -1,0 +1,40 @@
+---
+import { ArrowLeft } from "@lucide/astro";
+import PostCard from "../../components/PostCard.astro";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { getAllCategories, getSortedPosts } from "../../utils/posts";
+
+export async function getStaticPaths() {
+  const posts = await getSortedPosts();
+  const categories = getAllCategories(posts);
+
+  return categories.map((category) => ({
+    params: { category: category.name },
+    props: {
+      category: category.name,
+      count: category.count,
+      posts: posts.filter((post) => (post.data.category?.trim() || "未分类") === category.name)
+    }
+  }));
+}
+
+const { category, count, posts } = Astro.props;
+---
+
+<BaseLayout title={`${category} · 分类`} description={`“${category}”分类下的全部笔记。`}>
+  <section class="simple-hero simple-hero--compact shell">
+    <a class="article-header__back" href="/categories">
+      <ArrowLeft size={16} stroke-width={1.8} aria-hidden="true" />
+      返回全部分类
+    </a>
+    <p class="eyebrow">分类</p>
+    <h1>{category}</h1>
+    <p>共 {count} 篇笔记。</p>
+  </section>
+
+  <section class="shell simple-section">
+    <div class="timeline">
+      {posts.map((post, index) => <PostCard post={post} index={index} />)}
+    </div>
+  </section>
+</BaseLayout>

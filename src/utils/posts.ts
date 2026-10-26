@@ -45,6 +45,18 @@ export function getAllTags(posts: Post[]) {
     .map(([name, count]) => ({ name, count }));
 }
 
+export function getAllCategories(posts: Post[]) {
+  const counts = posts.reduce<Record<string, number>>((result, post) => {
+    const category = post.data.category?.trim() || "未分类";
+    result[category] = (result[category] || 0) + 1;
+    return result;
+  }, {});
+
+  return Object.entries(counts)
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "zh-CN"))
+    .map(([name, count]) => ({ name, count }));
+}
+
 export function formatDate(date: Date) {
   return new Intl.DateTimeFormat("zh-CN", {
     year: "numeric",
