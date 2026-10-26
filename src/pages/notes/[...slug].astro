@@ -1,6 +1,6 @@
 ---
 import { render } from "astro:content";
-import { ArrowLeft, ArrowRight, Clock3, Tag } from "@lucide/astro";
+import { ArrowLeft, ArrowRight, Clock3 } from "@lucide/astro";
 import "katex/dist/katex.min.css";
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import ImageLightbox from "../../components/ImageLightbox.astro";
@@ -62,17 +62,6 @@ const description = post.data.description || siteConfig.description;
 
       <h1>{post.data.title}</h1>
       <p>{description}</p>
-
-      <div class="article-header__tags">
-        {
-          post.data.tags.map((tag) => (
-            <a href={`/tags/${encodeURIComponent(tag)}`}>
-              <Tag size={13} stroke-width={1.8} aria-hidden="true" />
-              {tag}
-            </a>
-          ))
-        }
-      </div>
     </header>
 
     <div class="article-layout shell">

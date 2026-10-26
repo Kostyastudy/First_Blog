@@ -97,6 +97,7 @@ export const siteConfig = {
   nav: [
     { label: "首页", href: "/" },
     { label: "文章", href: "/#notes" },
+    { label: "分类", href: "/categories" },
     { label: "资料库", href: "/library" },
     { label: "搜索", href: "/search" },
     { label: "关于", href: "/about" }
@@ -106,19 +107,21 @@ export const siteConfig = {
 
 导航的**增删改**只改这个数组；页面顶部的「当前页」高亮逻辑在 `SiteHeader.astro` 里，普通路径不需要动。
 
-### 3.2 首页大标题
+### 3.2 首页标题和简介
 
 `src/pages/index.astro` 里找到：
 
 ```astro
 <h1>
-  把成长写成
-  <span>一条能回看的路。</span>
+  学习笔记
+  <span>与资料归档</span>
 </h1>
-<p class="hero__lead">记录学习、判断、失误和变化……</p>
+<p class="hero__lead">{siteConfig.description}</p>
 ```
 
-直接改文字即可。`<span>` 里的内容会应用强调色（见第 5 节 `--coral`）。
+- 大标题直接改文字；`<span>` 里的内容会用强调色（`--coral`）。
+- 首页副标题直接读 `src/config.ts` 的 `description`，改配置就会同步显示在这里。
+- 如果还想改页头、页脚、关于页文案，分别在 `SiteHeader.astro`、`BaseLayout.astro`、`about.astro`。
 
 ### 3.3 关于页 / 页脚
 
@@ -133,20 +136,20 @@ export const siteConfig = {
 
 ```css
 :root {
-  --paper: #edf1e8;        /* 页面底色 */
-  --paper-bright: #f8faf4; /* 卡片、输入框 */
-  --paper-deep: #dce4d7;   /* 次级底色 */
-  --ink: #0b1a14;          /* 主文字 */
-  --ink-soft: #24372f;     /* 正文 */
-  --muted: #5d6c64;        /* 次要文字 */
-  --line: rgba(11, 26, 20, 0.16);
-  --line-strong: rgba(11, 26, 20, 0.34);
-  --acid: #d5ff45;         /* 高亮、阴影、选中 */
-  --coral: #ff6948;        /* 强调、下划线、标题装饰 */
-  --sky: #a9d4ff;          /* 辅助色 */
-  --shell: 1240px;         /* 页面最大宽度 */
+  --paper: #f7f6f2;        /* 页面底色 */
+  --paper-bright: #ffffff; /* 卡片、输入框 */
+  --paper-deep: #eceae3;   /* 次级底色 */
+  --ink: #17202a;          /* 主文字 */
+  --ink-soft: #2f3a44;     /* 正文 */
+  --muted: #68727c;        /* 次要文字 */
+  --line: rgba(23, 32, 42, 0.12);
+  --line-strong: rgba(23, 32, 42, 0.28);
+  --acid: #dde6ee;         /* 浅色块、选中 */
+  --coral: #1f4e79;        /* 强调色（学术深蓝） */
+  --sky: #cddbe6;
+  --shell: 1120px;         /* 页面最大宽度 */
   --gutter: 28px;          /* 左右留白 */
-  --font-display: "Local Display", "Songti SC", "STSong", serif;
+  --font-display: "Local Display", "Songti SC", "STSong", "Noto Serif CJK SC", serif;
   --font-body: "Aptos", "Microsoft YaHei UI", "Microsoft YaHei", sans-serif;
   --font-mono: "Cascadia Code", "SFMono-Regular", Consolas, monospace;
 }
@@ -204,38 +207,48 @@ html[data-theme="dark"] {
 
 ```text
 <BaseLayout>
-  <section class="hero shell">          大标题 + 主视觉图
-  <section class="signal-band">         最近更新条
-  <section class="notes-section">       搜索、标签筛选、文章时间轴
+  <section class="hero shell">          大标题 + 简介 + 按钮（纯文字）
+  <section class="notes-section">       搜索框、分类筛选、文章列表
 </BaseLayout>
 ```
 
 - **不要整块删除 `notes-section`**，它是文章列表的载体。
-- 可以删 `signal-band`，或者删 `hero` 里的 `<figure class="hero__visual">` 只保留文字。
 - 想调整顺序，直接把整段 `<section>` 剪切到别的位置。
+- 首页已经去掉了大图和「最近更新」条，保持纯文字学术风。
 
-#### 例：去掉首页右侧大图，变成纯文字
+#### 例：调整标题大小和留白
 
-1. 删除 `index.astro` 里的 `<figure class="hero__visual">…</figure>`。
+在 `global.css` 末尾覆盖：
+
+```css
+.hero {
+  padding-block: 56px 32px;
+}
+
+.hero h1 {
+  font-size: clamp(2rem, 3.6vw, 3rem);
+}
+```
+
+#### 例：恢复右侧大图
+
+1. 在 `index.astro` 的 `</div>`（`.hero__copy` 结束）后加回 `<figure>`，图片放 `public/images/`。
 2. 在 `global.css` 末尾加：
 
 ```css
 .hero {
-  grid-template-columns: 1fr;
+  display: grid;
+  grid-template-columns: minmax(0, 1.08fr) minmax(320px, 0.82fr);
+  gap: 56px;
+  align-items: center;
 }
 ```
 
-（`.hero` 原本是两栏网格；只删图片不改这个，右边会留下空栏。）
-
-#### 例：去掉「最近更新」条
-
-删除 `index.astro` 里整个 `<section class="signal-band">…</section>` 即可，没有脚本依赖它。
-
 ### 5.2 改页面宽度
 
-- 全站：改 `--shell`（默认 1240px）。
+- 全站：改 `--shell`（当前 1120px）。
 - 左右留白：改 `--gutter`（默认 28px）。
-- 资料库、搜索页：`global.css` 里 `.simple-section` 和 `.simple-hero` 的 `max-width: 880px;`。
+- 资料库、搜索页：`global.css` 里 `.simple-section` 和 `.simple-hero` 的 `max-width`。
 - 文章正文：`.article-layout` 的栅格和 `.prose` 的 `max-width`。
 
 想更窄更专注，可以把 `.simple-section`、`.simple-hero` 改成 `760px`。
@@ -255,9 +268,9 @@ html[data-theme="dark"] {
 }
 ```
 
-### 5.4 把时间轴改成卡片网格
+### 5.4 把文章列表改成卡片网格
 
-首页文章列表现在是一条竖线时间轴。想改成两列卡片：
+首页文章列表现在是一行一条的学术列表。想改成两列卡片：
 
 ```css
 .timeline {
@@ -293,7 +306,7 @@ html[data-theme="dark"] {
 
 | 页面 | 必须保留 |
 | --- | --- |
-| 首页 | `data-post`、`data-tags`、`data-search`、`data-filter-tag`、`data-search-input`、`data-result-count`、`data-empty-state` |
+| 首页 | `data-post`、`data-category`、`data-search`、`data-filter-category`、`data-search-input`、`data-result-count`、`data-empty-state` |
 | 文章页 | `data-article-body`、`data-reading-progress`、`data-lightbox`、`data-lightbox-img` |
 | 资料库 | `data-doc`、`data-doc-filter`、`data-doc-count`、`data-doc-empty`、`data-pdf-frame`、`data-base` |
 | 搜索页 | `data-search-form`、`data-search-page-input`、`data-search-status`、`data-search-results` |
@@ -362,31 +375,20 @@ src/content/posts/微积分/02-极限的概念.md
 
 ## 6. 改动画
 
-首页标题和主视觉的入场动画在 `global.css` 的：
+当前学术主题已经在 `global.css` 末尾用 `.hero__copy > *, .hero__visual { animation: none; }` 关掉了首页入场动画，所以默认是静止的。
+
+想重新打开，可以删掉末尾这段覆盖，或者在 `@media (prefers-reduced-motion: no-preference)` 里调整：
 
 ```css
-@media (prefers-reduced-motion: no-preference) {
-  .hero__copy > * { animation: rise-in 650ms both; }
-  .hero__visual { animation: visual-in 760ms 100ms both; }
-  @keyframes rise-in { ... }
-  @keyframes visual-in { ... }
-}
-```
-
-**完全关闭**：删掉这一整段，或者在末尾加：
-
-```css
-.hero__copy > *,
-.hero__visual {
-  animation: none;
-}
+.hero__copy > * { animation: rise-in 650ms both; }
+.hero__visual { animation: visual-in 760ms 100ms both; }
 ```
 
 **只让动画更快**：把 `650ms`、`760ms` 改小，比如 `300ms`。
 
 **只去掉位移、保留淡入**：把 `transform` 那两行删掉。
 
-其他 hover 位移在 `.timeline-post`、`.button` 等规则里，想全站静止可以在末尾加：
+其他 hover 位移在 `.timeline-post`、`.button` 等规则里；学术主题已经去掉了大部分位移和阴影。想全站静止可以在末尾加：
 
 ```css
 * {
@@ -403,11 +405,13 @@ src/content/posts/微积分/02-极限的概念.md
 | 位置 | 文件 |
 | --- | --- |
 | 浏览器标签图标 | `public/favicon.svg` |
-| 首页右侧主视觉 | `public/images/growth-atlas.webp` |
 | 分享卡片默认图 | `BaseLayout` 里 `image` 默认值 |
+| 旧的首页主视觉 | `public/images/growth-atlas.webp`（学术版首页已不显示，仅保留文件） |
 | 文章封面 | frontmatter `cover:`（暂时只用于数据，未渲染） |
 
-换主视觉时保持竖图比例（约 4:5），否则裁切会变形。想重新生成抽象封面：
+学术版首页是纯文字，没有大图。想加回图片或更换分享图，参考 5.1 的「恢复右侧大图」，并保持竖图比例（约 4:5）。
+
+想重新生成抽象封面图（可作分享图）：
 
 ```powershell
 npm run generate:cover

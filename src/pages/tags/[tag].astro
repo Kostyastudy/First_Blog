@@ -1,6 +1,7 @@
 ---
 import PostCard from "../../components/PostCard.astro";
 import BaseLayout from "../../layouts/BaseLayout.astro";
+import { siteConfig } from "../../config";
 import { getAllTags, getSortedPosts } from "../../utils/posts";
 
 export async function getStaticPaths() {
@@ -21,7 +22,7 @@ const { tag, count, posts } = Astro.props;
 ---
 
 <BaseLayout
-  title={`#${tag} · 留痕`}
+  title={`#${tag} · ${siteConfig.name}`}
   description={`与“${tag}”有关的成长记录，共 ${count} 篇。`}
 >
   <section class="tag-hero shell">
