@@ -1,91 +1,122 @@
 ---
-import { FileText } from "@lucide/astro";
+import { readFileSync } from "node:fs";
+import path from "node:path";
+import { FileText, NotebookPen } from "@lucide/astro";
 import BaseLayout from "../../layouts/BaseLayout.astro";
-import { formatBytes, formatDate, getSortedDocs } from "../../utils/posts";
+import { formatBytes, formatDate, getSortedDocs, getSortedPosts } from "../../utils/posts";
 
+const folders = JSON.parse(
+  readFileSync(path.join(process.cwd(), "src", "data", "folders.json"), "utf8")
+) as string[];
+
+const posts = await getSortedPosts();
 const docs = await getSortedDocs();
-const tagCounts = docs.reduce<Record<string, number>>((result, doc) => {
-  doc.data.tags.forEach((tag) => {
-    result[tag] = (result[tag] || 0) + 1;
-  });
-  return result;
-}, {});
-const tags = Object.entries(tagCounts).sort((a, b) => b[1] - a[1]);
+
+const noteFolder = (category: string) => {
+  if (["微积分Ⅰ", "导航", "复习"].includes(category)) return "微积分Ⅰ";
+  if (category === "线性代数") return "线性代数";
+  return "其他";
+};
+
+const docFolder = (category: string, title: string) => {
+  if (category === "保研") return "保研资料";
+  if (title.includes("班主任")) return "学习方法";
+  if (category === "论文" || title.includes("Attention")) return "其他";
+  return "微积分Ⅰ";
+};
+
+const items = [
+  ...posts.map((post) => ({
+    kind: "note" as const,
+    id: post.id,
+    title: post.data.title,
+    description: post.data.description,
+    date: post.data.pubDate,
+    folder: post.data.folder || noteFolder(post.data.category),
+    href: `/notes/${post.id}`,
+    label: "笔记"
+  })),
+  ...docs.map((doc) => {
+    const extension = path.extname(doc.data.file).toLowerCase();
+    const label = extension === ".pdf" ? "PDF" : extension === ".docx" ? "Word" : "文件";
+    return {
+      kind: "file" as const,
+      id: doc.id,
+      title: doc.data.title,
+      description: doc.data.description,
+      date: doc.data.pubDate,
+      folder: doc.data.folder || docFolder(doc.data.category, doc.data.title),
+      href: `/library/${doc.id}`,
+      label,
+      bytes: doc.data.bytes
+    };
+  })
+];
+
+const allFolders = [
+  ...folders,
+  ...new Set(items.map((item) => item.folder).filter((folder) => !folders.includes(folder)))
+];
+
+const grouped = allFolders.map((folder) => ({
+  folder,
+  items: items
+    .filter((item) => item.folder === folder)
+    .sort((a, b) => b.date.valueOf() - a.date.valueOf())
+}));
 ---
 
-<BaseLayout title="资料库" description="课程 PDF、讲义和整理好的学习资料。">
+<BaseLayout title="资料库" description="按学科归档的笔记与文件。">
   <section class="simple-hero shell">
-    <p class="eyebrow">资料库</p>
+    <p class="eyebrow">Library</p>
     <h1>资料库</h1>
-    <p>这里收录可以公开的课程资料。点击条目在线阅读，或直接下载。</p>
+    <p>按文件夹归档笔记与文件，共 {items.length} 项。</p>
+    <nav class="folder-nav" aria-label="文件夹">
+      {
+        grouped.map((group) => (
+          <a href={`#folder-${encodeURIComponent(group.folder)}`}>
+            {group.folder}
+            <span>{group.items.length}</span>
+          </a>
+        ))
+      }
+    </nav>
   </section>
 
   <section class="shell simple-section">
     {
-      tags.length > 0 && (
-        <div class="filter-row" role="group" aria-label="按标签筛选资料">
-          <button class="filter-chip is-active" type="button" data-doc-filter="all">全部</button>
-          {tags.map(([tag, count]) => (
-            <button class="filter-chip" type="button" data-doc-filter={tag}>
-              {tag}
-              <span>{count}</span>
-            </button>
-          ))}
-        </div>
-      )
+      grouped.map((group) => (
+        <section class="folder-block" id={`folder-${encodeURIComponent(group.folder)}`}>
+          <div class="folder-heading">
+            <h2>{group.folder}</h2>
+            <span>{group.items.length} 项</span>
+          </div>
+
+          <ul class="doc-list">
+            {group.items.map((item) => (
+              <li class="doc-row">
+                {item.kind === "note" ? (
+                  <NotebookPen size={18} stroke-width={1.6} aria-hidden="true" />
+                ) : (
+                  <FileText size={18} stroke-width={1.6} aria-hidden="true" />
+                )}
+                <div class="doc-row__body">
+                  <a class="doc-row__title" href={item.href}>
+                    {item.title}
+                  </a>
+                  <p class="doc-row__meta">
+                    {item.label} · {formatDate(item.date)}
+                    {"bytes" in item && item.bytes ? ` · ${formatBytes(item.bytes)}` : ""}
+                  </p>
+                  {item.description && <p class="doc-row__description">{item.description}</p>}
+                </div>
+              </li>
+            ))}
+          </ul>
+
+          {group.items.length === 0 && <p class="empty-state">这个文件夹还没有内容。</p>}
+        </section>
+      ))
     }
-
-    <p class="result-count" data-doc-count>共 {docs.length} 份资料</p>
-
-    <ul class="doc-list">
-      {
-        docs.map((doc) => (
-          <li class="doc-row" data-doc data-tags={doc.data.tags.join("|")}>
-            <FileText size={20} stroke-width={1.6} aria-hidden="true" />
-            <div class="doc-row__body">
-              <a class="doc-row__title" href={`/library/${doc.id}`}>
-                {doc.data.title}
-              </a>
-              <p class="doc-row__meta">
-                {formatDate(doc.data.pubDate)} · {formatBytes(doc.data.bytes)}
-                {doc.data.tags.length > 0 && ` · ${doc.data.tags.join(" / ")}`}
-              </p>
-              {doc.data.description && <p class="doc-row__description">{doc.data.description}</p>}
-            </div>
-          </li>
-        ))
-      }
-    </ul>
-
-    <p class="empty-state" data-doc-empty hidden={docs.length > 0}>
-      还没有资料。把 PDF 放进 <code>public/files/</code>，在 <code>src/content/library/</code> 建一个条目，或运行 <code>npm run import</code>。
-    </p>
   </section>
 </BaseLayout>
-
-<script>
-  const rows = Array.from(document.querySelectorAll<HTMLElement>("[data-doc]"));
-  const buttons = Array.from(document.querySelectorAll<HTMLButtonElement>("[data-doc-filter]"));
-  const count = document.querySelector<HTMLElement>("[data-doc-count]");
-  const empty = document.querySelector<HTMLElement>("[data-doc-empty]");
-
-  const applyFilter = (tag: string) => {
-    let visible = 0;
-
-    rows.forEach((row) => {
-      const matches = tag === "all" || (row.dataset.tags ?? "").split("|").includes(tag);
-      row.hidden = !matches;
-      if (matches) visible += 1;
-    });
-
-    if (count) count.textContent = tag === "all" ? `共 ${visible} 份资料` : `“${tag}” 下共 ${visible} 份资料`;
-    if (empty) empty.hidden = visible !== 0;
-  };
-
-  buttons.forEach((button) => {
-    button.addEventListener("click", () => {
-      buttons.forEach((item) => item.classList.toggle("is-active", item === button));
-      applyFilter(button.dataset.docFilter ?? "all");
-    });
-  });
-</script>

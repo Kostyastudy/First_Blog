@@ -12,6 +12,7 @@ const posts = defineCollection({
     pubDate: z.coerce.date(),
     updatedDate: z.coerce.date().optional(),
     category: z.string().default("笔记"),
+    folder: z.string().optional(),
     tags: z.array(z.string()).default([]),
     readingTime: z.string().optional(),
     featured: z.boolean().default(false),
@@ -32,10 +33,30 @@ const library = defineCollection({
     file: z.string(),
     pubDate: z.coerce.date(),
     category: z.string().default("资料"),
+    folder: z.string().optional(),
     tags: z.array(z.string()).default([]),
     bytes: z.number().optional(),
     draft: z.boolean().default(false)
   })
 });
 
-export const collections = { posts, library };
+const pages = defineCollection({
+  loader: glob({
+    pattern: "**/*.md",
+    base: "./src/content/pages"
+  }),
+  schema: z.object({
+    title: z.string(),
+    description: z.string().default(""),
+    links: z
+      .array(
+        z.object({
+          label: z.string(),
+          url: z.string()
+        })
+      )
+      .default([])
+  })
+});
+
+export const collections = { posts, library, pages };

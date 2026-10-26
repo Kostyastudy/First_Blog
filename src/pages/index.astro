@@ -1,12 +1,26 @@
 ---
+import { readFileSync } from "node:fs";
+import path from "node:path";
 import { Search } from "@lucide/astro";
 import PostCard from "../components/PostCard.astro";
 import BaseLayout from "../layouts/BaseLayout.astro";
 import { siteConfig } from "../config";
-import { getAllCategories, getSortedPosts } from "../utils/posts";
+import { getSortedPosts } from "../utils/posts";
 
+const folders = JSON.parse(
+  readFileSync(path.join(process.cwd(), "src", "data", "folders.json"), "utf8")
+) as string[];
 const posts = await getSortedPosts();
-const categories = getAllCategories(posts);
+const noteFolder = (category: string, folder?: string) => {
+  if (folder) return folder;
+  if (["微积分Ⅰ", "导航", "复习"].includes(category)) return "微积分Ⅰ";
+  if (category === "线性代数") return "线性代数";
+  return "其他";
+};
+const folderCounts = folders.map((name) => ({
+  name,
+  count: posts.filter((post) => noteFolder(post.data.category, post.data.folder) === name).length
+}));
 const hasPosts = posts.length > 0;
 ---
 
@@ -21,10 +35,15 @@ const hasPosts = posts.length > 0;
       <p class="hero__lead">{siteConfig.description}</p>
       <div class="hero__actions">
         <a class="button button--primary" href="#notes">浏览笔记</a>
-        <a class="text-link" href="/categories">按分类查看</a>
         <a class="text-link" href="/library">资料库</a>
+        <a class="text-link" href="/about">关于</a>
       </div>
     </div>
+
+    <aside class="hero__intro">
+      <p class="eyebrow">About</p>
+      <p class="hero__intro-text">{siteConfig.homeIntro}</p>
+    </aside>
   </section>
 
   <section class="notes-section shell" id="notes">
@@ -55,12 +74,12 @@ const hasPosts = posts.length > 0;
               />
             </label>
 
-            <div class="filter-row" role="group" aria-label="按分类筛选">
-              <button class="filter-chip is-active" type="button" data-filter-category="all">全部</button>
-              {categories.map((category) => (
-                <button class="filter-chip" type="button" data-filter-category={category.name}>
-                  {category.name}
-                  <span>{category.count}</span>
+            <div class="filter-row" role="group" aria-label="按文件夹筛选">
+              <button class="filter-chip is-active" type="button" data-filter-folder="all">全部</button>
+              {folderCounts.map((folder) => (
+                <button class="filter-chip" type="button" data-filter-folder={folder.name}>
+                  {folder.name}
+                  <span>{folder.count}</span>
                 </button>
               ))}
             </div>
@@ -95,11 +114,11 @@ const hasPosts = posts.length > 0;
   const postItems = Array.from(document.querySelectorAll<HTMLElement>("[data-post]"));
   const searchInput = document.querySelector<HTMLInputElement>("[data-search-input]");
   const filterButtons = Array.from(
-    document.querySelectorAll<HTMLButtonElement>("[data-filter-category]")
+    document.querySelectorAll<HTMLButtonElement>("[data-filter-folder]")
   );
   const resultCount = document.querySelector<HTMLElement>("[data-result-count]");
   const emptyState = document.querySelector<HTMLElement>("[data-empty-state]");
-  let activeCategory = "all";
+  let activeFolder = "all";
 
   const normalize = (value: string) => value.trim().toLowerCase();
 
@@ -108,11 +127,11 @@ const hasPosts = posts.length > 0;
     let visibleCount = 0;
 
     postItems.forEach((post) => {
-      const category = post.dataset.category ?? "";
+      const folder = post.dataset.folder ?? "";
       const searchable = post.dataset.search ?? "";
-      const matchesCategory = activeCategory === "all" || category === activeCategory;
+      const matchesFolder = activeFolder === "all" || folder === activeFolder;
       const matchesQuery = !query || searchable.includes(query);
-      const isVisible = matchesCategory && matchesQuery;
+      const isVisible = matchesFolder && matchesQuery;
 
       post.hidden = !isVisible;
       if (isVisible) visibleCount += 1;
@@ -124,7 +143,7 @@ const hasPosts = posts.length > 0;
 
   filterButtons.forEach((button) => {
     button.addEventListener("click", () => {
-      activeCategory = button.dataset.filterCategory ?? "all";
+      activeFolder = button.dataset.filterFolder ?? "all";
       filterButtons.forEach((item) => item.classList.toggle("is-active", item === button));
       updateResults();
     });

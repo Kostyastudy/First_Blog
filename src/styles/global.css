@@ -2335,3 +2335,118 @@ body::before {
 .file-card p {
   margin: 4px 0;
 }
+
+.hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.55fr) minmax(240px, 0.65fr);
+  align-items: start;
+  gap: 56px;
+}
+
+.hero__intro {
+  margin-top: 30px;
+  padding-left: 24px;
+  border-left: 1px solid var(--line);
+}
+
+.hero__intro-text {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.92rem;
+  line-height: 1.9;
+  white-space: pre-line;
+}
+
+.about-content {
+  padding-top: 8px;
+}
+
+.about-links {
+  margin-top: 40px;
+  padding-top: 22px;
+  border-top: 1px solid var(--line);
+}
+
+.about-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 18px 0 0;
+  padding: 7px 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: 3px;
+  font-size: 0.86rem;
+}
+
+.about-link:hover {
+  border-color: var(--coral);
+  color: var(--coral);
+}
+
+@media (max-width: 760px) {
+  .hero {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+
+  .hero__intro {
+    margin-top: 4px;
+    padding: 18px 0 0;
+    border-left: 0;
+    border-top: 1px solid var(--line);
+  }
+}
+
+.folder-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 20px;
+}
+
+.folder-nav a {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 11px;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  font-size: 0.82rem;
+}
+
+.folder-nav a span {
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+}
+
+.folder-nav a:hover {
+  border-color: var(--ink);
+}
+
+.folder-block {
+  margin-top: 44px;
+  scroll-margin-top: 90px;
+}
+
+.folder-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--line-strong);
+}
+
+.folder-heading h2 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.folder-heading span {
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+}

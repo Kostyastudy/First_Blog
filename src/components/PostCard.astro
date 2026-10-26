@@ -10,6 +10,13 @@ interface Props {
 
 const { post } = Astro.props;
 const href = `/notes/${post.id}`;
+const folder =
+  post.data.folder ||
+  (["微积分Ⅰ", "导航", "复习"].includes(post.data.category)
+    ? "微积分Ⅰ"
+    : post.data.category === "线性代数"
+      ? "线性代数"
+      : "其他");
 const searchText = [
   post.data.title,
   post.data.description,
@@ -24,6 +31,7 @@ const searchText = [
   class="timeline-post"
   data-post
   data-category={post.data.category}
+  data-folder={folder}
   data-search={searchText}
 >
   <div class="timeline-post__rail" aria-hidden="true"></div>

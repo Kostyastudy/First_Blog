@@ -1,4 +1,5 @@
 import http from "node:http";
+import net from "node:net";
 import { createReadStream, existsSync } from "node:fs";
 import { mkdir, readFile, readdir, stat, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
@@ -13,10 +14,14 @@ const root = process.cwd();
 const adminDir = path.join(root, "admin");
 const postsDir = path.join(root, "src", "content", "posts");
 const libraryDir = path.join(root, "src", "content", "library");
+const pagesDir = path.join(root, "src", "content", "pages");
 const filesDir = path.join(root, "public", "files");
 const inboxDir = path.join(root, "inbox");
 const configPath = path.join(root, "src", "config.ts");
+const foldersPath = path.join(root, "src", "data", "folders.json");
+const aboutPath = path.join(pagesDir, "about.md");
 const port = Number(process.env.ADMIN_PORT || 4322);
+const sitePort = 4321;
 const maxUpload = 50 * 1024 * 1024;
 
 const jobStore = new Map();
@@ -54,6 +59,11 @@ const today = () => {
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
 };
 
+const dateOnly = (value) => {
+  if (!value) return "";
+  const date = value instanceof Date ? value : new Date(String(value));
+  return Number.isNaN(date.valueOf()) ? String(value).slice(0, 10) : date.toISOString().slice(0, 10);
+};
 async function listPosts() {
   const names = (await readdir(postsDir)).filter((name) => name.endsWith(".md"));
   const posts = [];
@@ -67,8 +77,9 @@ async function listPosts() {
         title: String(parsed.data.title ?? name),
         description: String(parsed.data.description ?? ""),
         category: String(parsed.data.category ?? ""),
+        folder: String(parsed.data.folder ?? ""),
         tags: Array.isArray(parsed.data.tags) ? parsed.data.tags : [],
-        pubDate: String(parsed.data.pubDate ?? "").slice(0, 10),
+        pubDate: dateOnly(parsed.data.pubDate),
         draft: Boolean(parsed.data.draft)
       });
     } catch {
@@ -87,8 +98,9 @@ async function getPost(id) {
     title: String(parsed.data.title ?? ""),
     description: String(parsed.data.description ?? ""),
     category: String(parsed.data.category ?? ""),
+    folder: String(parsed.data.folder ?? ""),
     tags: Array.isArray(parsed.data.tags) ? parsed.data.tags : [],
-    pubDate: String(parsed.data.pubDate ?? "").slice(0, 10),
+    pubDate: dateOnly(parsed.data.pubDate),
     body: parsed.content.replace(/^\n+/, "")
   };
 }
@@ -113,8 +125,12 @@ async function savePost(payload) {
     description: String(payload.description ?? ""),
     date: payload.pubDate || today(),
     category: String(payload.category || "笔记"),
+    folder: String(payload.folder || "其他"),
     tags: splitTags(payload.tags),
-    extra: [`updatedDate: ${today()}`]
+    extra: [
+      `folder: ${JSON.stringify(String(payload.folder || "其他"))}`,
+      `updatedDate: ${today()}`
+    ]
   });
 
   await writeFile(path.join(postsDir, `${id}.md`), `${frontmatter}${String(payload.body ?? "").trim()}\n`, "utf8");
@@ -134,9 +150,10 @@ async function listLibrary() {
         description: String(parsed.data.description ?? ""),
         file: String(parsed.data.file ?? ""),
         category: String(parsed.data.category ?? ""),
+        folder: String(parsed.data.folder ?? ""),
         tags: Array.isArray(parsed.data.tags) ? parsed.data.tags : [],
         bytes: Number(parsed.data.bytes ?? 0),
-        pubDate: String(parsed.data.pubDate ?? "").slice(0, 10)
+        pubDate: dateOnly(parsed.data.pubDate)
       });
     } catch {
       // ignore
@@ -159,6 +176,7 @@ async function readConfig() {
     latinName: stringField("latinName"),
     title: stringField("title"),
     description: stringField("description"),
+    homeIntro: stringField("homeIntro"),
     heroTitle: stringField("heroTitle"),
     heroSubtitle: stringField("heroSubtitle"),
     footerNote: stringField("footerNote"),
@@ -175,6 +193,7 @@ async function writeConfig(patch) {
     "latinName",
     "title",
     "description",
+    "homeIntro",
     "heroTitle",
     "heroSubtitle",
     "footerNote",
@@ -195,6 +214,128 @@ async function writeConfig(patch) {
   }
 
   await writeFile(configPath, text, "utf8");
+}
+
+async function readFolders() {
+  try {
+    const text = (await readFile(foldersPath, "utf8")).replace(/^\uFEFF/, "");
+    const list = JSON.parse(text);
+    return Array.isArray(list) ? list : [];
+  } catch {
+    return [];
+  }
+}
+
+async function writeFolders(list) {
+  await writeFile(foldersPath, JSON.stringify([...new Set(list)], null, 2), "utf8");
+}
+
+async function createFolder(name) {
+  const folders = await readFolders();
+  const trimmed = String(name ?? "").trim();
+  if (!trimmed) throw new Error("文件夹名称不能为空");
+  if (folders.includes(trimmed)) throw new Error("文件夹已存在");
+  folders.push(trimmed);
+  await writeFolders(folders);
+  return folders;
+}
+
+async function deleteFolder(name) {
+  const [posts, docs, folders] = await Promise.all([listPosts(), listLibrary(), readFolders()]);
+  const used = [...posts, ...docs].some((item) => item.folder === name);
+  if (used) throw new Error("文件夹里还有内容，先把条目移到其他文件夹");
+  await writeFolders(folders.filter((folder) => folder !== name));
+  return readFolders();
+}
+
+async function moveItem(kind, id, folder) {
+  const dir = kind === "note" ? postsDir : libraryDir;
+  const file = path.join(dir, `${safeId(id)}.md`);
+  let text = await readFile(file, "utf8");
+  const target = String(folder || "其他");
+
+  if (/^folder:\s*.*$/m.test(text)) {
+    text = text.replace(/^folder:\s*.*$/m, `folder: ${JSON.stringify(target)}`);
+  } else if (/^category:.*$/m.test(text)) {
+    text = text.replace(/^(category:.*)$/m, `$1\nfolder: ${JSON.stringify(target)}`);
+  }
+
+  await writeFile(file, text, "utf8");
+}
+
+async function readAbout() {
+  const parsed = matter(await readFile(aboutPath, "utf8"));
+  return {
+    title: String(parsed.data.title ?? "关于"),
+    description: String(parsed.data.description ?? ""),
+    links: Array.isArray(parsed.data.links) ? parsed.data.links : [],
+    body: parsed.content.replace(/^\n+/, "")
+  };
+}
+
+async function saveAbout(payload) {
+  const links = Array.isArray(payload.links)
+    ? payload.links
+        .map((link) => ({ label: String(link.label ?? "").trim(), url: String(link.url ?? "").trim() }))
+        .filter((link) => link.label && link.url)
+    : [];
+
+  const content = matter.stringify(String(payload.body ?? "").trim() + "\n", {
+    title: String(payload.title || "关于"),
+    description: String(payload.description || ""),
+    links
+  });
+
+  await mkdir(pagesDir, { recursive: true });
+  await writeFile(aboutPath, content, "utf8");
+}
+
+const portOpen = (value) =>
+  new Promise((resolve) => {
+    const socket = net.connect({ port: value, host: "127.0.0.1" });
+    const done = (result) => {
+      socket.destroy();
+      resolve(result);
+    };
+    socket.once("connect", () => done(true));
+    socket.once("error", () => done(false));
+    socket.setTimeout(700, () => done(false));
+  });
+
+let devProcess = null;
+
+async function ensureDevServer() {
+  if (await portOpen(sitePort)) return "already-running";
+  devProcess = spawn("npm", ["run", "dev"], {
+    cwd: root,
+    shell: true,
+    windowsHide: true,
+    stdio: "ignore",
+    detached: false
+  });
+
+  for (let index = 0; index < 40; index += 1) {
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    if (await portOpen(sitePort)) return "started";
+  }
+
+  return "starting";
+}
+
+async function stopDevServer() {
+  if (!devProcess) return;
+  const pid = devProcess.pid;
+  devProcess = null;
+  if (!pid) return;
+  await new Promise((resolve) => {
+    const killer = spawn("taskkill", ["/pid", String(pid), "/T", "/F"], {
+      windowsHide: true,
+      stdio: "ignore",
+      shell: true
+    });
+    killer.on("close", resolve);
+    killer.on("error", resolve);
+  });
 }
 
 const runCommand = (command, args, onLine) =>
@@ -354,6 +495,7 @@ async function handleUpload(req, res, url) {
   const fileUrl = `/files/${baseSlug}${extension}`;
   const title = String(url.searchParams.get("title") || name.replace(/\.[^.]+$/, "")).trim();
   const category = String(url.searchParams.get("category") || "资料").trim();
+  const folder = String(url.searchParams.get("folder") || "其他").trim();
   const tags = splitTags(url.searchParams.get("tags") || "");
 
   const frontmatter = buildFrontmatter({
@@ -362,7 +504,7 @@ async function handleUpload(req, res, url) {
     date: today(),
     category,
     tags,
-    extra: [`file: ${JSON.stringify(fileUrl)}`, `bytes: ${size}`]
+    extra: [`file: ${JSON.stringify(fileUrl)}`, `bytes: ${size}`, `folder: ${JSON.stringify(folder)}`]
   });
 
   await writeFile(path.join(libraryDir, `${baseSlug}.md`), `${frontmatter}上传于写作台，可在资料库中下载。\n`, "utf8");
@@ -373,10 +515,16 @@ async function handleApi(req, res, url) {
   const { pathname, searchParams } = url;
 
   if (req.method === "GET" && pathname === "/api/summary") {
-    const [posts, docs, config] = await Promise.all([listPosts(), listLibrary(), readConfig()]);
+    const [posts, docs, config, folders] = await Promise.all([
+      listPosts(),
+      listLibrary(),
+      readConfig(),
+      readFolders()
+    ]);
     sendJson(res, 200, {
       posts: posts.length,
       docs: docs.length,
+      folders,
       config,
       categories: [...new Set(posts.map((post) => post.category).filter(Boolean))]
     });
@@ -472,6 +620,57 @@ async function handleApi(req, res, url) {
     return;
   }
 
+  if (req.method === "GET" && pathname === "/api/folders") {
+    sendJson(res, 200, await readFolders());
+    return;
+  }
+
+  if (req.method === "POST" && pathname === "/api/folders") {
+    const payload = JSON.parse((await readBody(req)).toString("utf8"));
+    sendJson(res, 200, await createFolder(payload.name));
+    return;
+  }
+
+  if (req.method === "DELETE" && pathname === "/api/folders") {
+    sendJson(res, 200, await deleteFolder(String(searchParams.get("name") || "")));
+    return;
+  }
+
+  if (req.method === "POST" && pathname === "/api/move") {
+    const payload = JSON.parse((await readBody(req)).toString("utf8"));
+    await moveItem(String(payload.kind), String(payload.id), String(payload.folder));
+    sendJson(res, 200, { ok: true });
+    return;
+  }
+
+  if (req.method === "GET" && pathname === "/api/about") {
+    sendJson(res, 200, await readAbout());
+    return;
+  }
+
+  if (req.method === "PUT" && pathname === "/api/about") {
+    const payload = JSON.parse((await readBody(req)).toString("utf8"));
+    await saveAbout(payload);
+    sendJson(res, 200, await readAbout());
+    return;
+  }
+
+  if (req.method === "GET" && pathname === "/api/dev") {
+    sendJson(res, 200, { running: await portOpen(sitePort) });
+    return;
+  }
+
+  if (req.method === "POST" && pathname === "/api/dev") {
+    const payload = JSON.parse((await readBody(req)).toString("utf8"));
+    if (payload.action === "start") {
+      sendJson(res, 200, { running: true, state: await ensureDevServer() });
+      return;
+    }
+    await stopDevServer();
+    sendJson(res, 200, { running: await portOpen(sitePort) });
+    return;
+  }
+
   sendJson(res, 404, { error: "not found" });
 }
 
@@ -516,7 +715,18 @@ const server = http.createServer(async (req, res) => {
 server.listen(port, "127.0.0.1", () => {
   const url = `http://127.0.0.1:${port}`;
   console.log(`写作台已启动：${url}`);
+  ensureDevServer()
+    .then((state) => console.log(`本地预览：${state === "already-running" ? "已在运行" : "已启动"}`))
+    .catch((error) => console.error(`本地预览启动失败：${error.message}`));
   if (process.env.NO_OPEN !== "1") {
     spawn("cmd.exe", ["/c", "start", "", url], { detached: true, stdio: "ignore" }).unref();
   }
 });
+
+const shutdown = async () => {
+  await stopDevServer();
+  process.exit(0);
+};
+
+process.on("SIGINT", shutdown);
+process.on("SIGTERM", shutdown);

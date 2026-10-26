@@ -348,31 +348,27 @@ import BaseLayout from "../layouts/BaseLayout.astro";
 
 ---
 
-### 5.8 用文件夹和分类归类文章
+### 5.8 用文件夹归类内容
 
-顶栏现在有「分类」，数据来自每篇文章 frontmatter 里的 `category`：
-
-- 分类总览：`/categories`
-- 单个分类：`/categories/<分类名>`
-- 改分类只改 `category`，文章 URL 不变。
-
-也可以同时用文件夹整理源文件，文件夹会出现在 URL 里：
+顶栏现在只有「资料库」，笔记和文件按 `folder` 归类：
 
 ```text
-src/content/posts/微积分/02-极限的概念.md
-        ↓
-/notes/微积分/02-极限的概念
+微积分Ⅰ / 线性代数 / 保研资料 / 学习方法 / 其他
 ```
 
-注意：
+- 文件夹列表在 `src/data/folders.json`；
+- 每篇笔记和每个文件条目用 frontmatter 的 `folder` 字段归属；
+- 在工作台里拖动条目只改这个字段，URL 不变；
+- 新建文件夹后，把条目拖进去即可；
+- 文件夹里还有内容时不能删除。
 
-- 文件夹名**不会**自动变成 `category`，分类页只读 frontmatter；
-- 已发布的文章不要随意移动或改名，URL 会变，旧链接会 404；
-- Obsidian 导入时，源文件的顶层文件夹会自动写进 `category`；
-- 文件名在同一个文件夹内要唯一，否则构建会报冲突。
+源文件也可以用真实目录整理，但目录会出现在 URL 里：
 
-新增分类不需要改代码：在任何文章的 frontmatter 里写一个新的 `category`，重新构建就会自动出现对应的分类页。
+```text
+src/content/posts/微积分/02-极限的概念.md  →  /notes/微积分/02-极限的概念
+```
 
+已发布的文章不要随意移动或改名，否则旧链接会 404。
 ## 6. 改动画
 
 当前学术主题已经在 `global.css` 末尾用 `.hero__copy > *, .hero__visual { animation: none; }` 关掉了首页入场动画，所以默认是静止的。

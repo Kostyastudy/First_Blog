@@ -30,17 +30,17 @@ readingTime: "8 分钟"        # 可选，不写自动按字数估算
 
 ## 分类与文件夹
 
-- `category` 是分类的唯一来源，`/categories` 和分类页按它归类。
-- 首页筛选使用 `category`，不再展示细碎标签；`tags` 仍保留给搜索和标签归档页。
+- `folder` 决定资料库里的文件夹：`微积分Ⅰ / 线性代数 / 保研资料 / 学习方法 / 其他`。
+- `category` 仍然保留，用于文章卡片上的标签和搜索，不再决定导航。
 - 可以按文件夹整理源文件：
 
   ```text
   src/content/posts/微积分/02-极限的概念.md  →  /notes/微积分/02-极限的概念
   ```
 
-- 文件夹**不会**自动变成 `category`；仍然要在 frontmatter 写 `category: "微积分Ⅰ"`。
-- Obsidian 导入时，源文件顶层文件夹会自动写入 `category`。
-- 已发布的文章不要随意改名或移动，URL 会变；稳定链接比整理文件夹更重要。
+- 文件夹**不会**自动变成 `folder`；仍然要在 frontmatter 写 `folder: "微积分Ⅰ"`。
+- Obsidian 导入时，源文件顶层文件夹会自动写入 `category`；`folder` 需要随后在工作台里整理。
+- 已发布的文章不要随意改名或移动，URL 会变；在工作台里拖动文件夹只改 `folder` 字段，不影响 URL。
 
 ## 图片
 

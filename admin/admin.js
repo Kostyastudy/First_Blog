@@ -8,6 +8,14 @@ const api = async (url, options = {}) => {
   return data;
 };
 
+let posts = [];
+let docs = [];
+let folders = [];
+let selectedFolder = "全部";
+let editingId = null;
+let activeJob = null;
+let jobTimer = null;
+
 const showToast = (message) => {
   const toast = $("#toast");
   toast.textContent = message;
@@ -15,14 +23,8 @@ const showToast = (message) => {
   window.clearTimeout(showToast.timer);
   showToast.timer = window.setTimeout(() => {
     toast.hidden = true;
-  }, 3800);
+  }, 3600);
 };
-
-let posts = [];
-let docs = [];
-let editingId = null;
-let activeJob = null;
-let jobTimer = null;
 
 const todayValue = () => {
   const date = new Date();
@@ -30,99 +32,249 @@ const todayValue = () => {
   return new Date(date.getTime() - offset * 60000).toISOString().slice(0, 10);
 };
 
-async function loadSummary() {
-  const data = await api("/api/summary");
-  return data;
+const fileLabel = (file) => {
+  const ext = String(file).toLowerCase().split(".").pop();
+  if (ext === "pdf") return "PDF";
+  if (ext === "docx" || ext === "doc") return "Word";
+  if (ext === "pptx" || ext === "ppt") return "PPT";
+  return "文件";
+};
+
+const allItems = () =>
+  [
+    ...posts.map((post) => ({
+      kind: "note",
+      id: post.id,
+      title: post.title,
+      description: post.description,
+      meta: post.category,
+      date: post.pubDate,
+      folder: post.folder || "其他",
+      href: `http://localhost:4321/notes/${encodeURIComponent(post.id)}`
+    })),
+    ...docs.map((doc) => ({
+      kind: "file",
+      id: doc.id,
+      title: doc.title,
+      description: doc.description,
+      meta: fileLabel(doc.file),
+      date: doc.pubDate,
+      folder: doc.folder || "其他",
+      bytes: doc.bytes,
+      href: `http://localhost:4321/library/${encodeURIComponent(doc.id)}`
+    }))
+  ];
+
+function folderCount(name) {
+  return allItems().filter((item) => (name === "全部" ? true : item.folder === name)).length;
 }
 
-function renderPosts(filter = "") {
-  const list = $("#postList");
+function renderFolders() {
+  const list = $("#folderList");
   list.innerHTML = "";
-  const needle = filter.trim().toLowerCase();
 
-  const visible = posts.filter((post) => {
-    if (!needle) return true;
-    return [post.title, post.description, post.category, ...(post.tags || [])]
-      .join(" ")
-      .toLowerCase()
-      .includes(needle);
-  });
+  const all = document.createElement("button");
+  all.type = "button";
+  all.className = `folder-btn${selectedFolder === "全部" ? " active" : ""}`;
+  all.innerHTML = `<span>全部</span><em>${folderCount("全部")}</em>`;
+  all.addEventListener("click", () => selectFolder("全部"));
+  list.append(all);
+
+  for (const folder of folders) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = `folder-btn${selectedFolder === folder ? " active" : ""}`;
+    button.innerHTML = `<span></span><em></em>`;
+    button.querySelector("span").textContent = folder;
+    button.querySelector("em").textContent = String(folderCount(folder));
+
+    button.addEventListener("click", () => selectFolder(folder));
+    button.addEventListener("dragover", (event) => {
+      event.preventDefault();
+      button.classList.add("drop");
+    });
+    button.addEventListener("dragleave", () => button.classList.remove("drop"));
+    button.addEventListener("drop", async (event) => {
+      event.preventDefault();
+      button.classList.remove("drop");
+      try {
+        const payload = JSON.parse(event.dataTransfer.getData("text/plain"));
+        await api("/api/move", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ...payload, folder })
+        });
+        await loadLibrary();
+        showToast(`已移到「${folder}」`);
+      } catch (error) {
+        showToast(error.message);
+      }
+    });
+
+    const remove = document.createElement("button");
+    remove.type = "button";
+    remove.className = "folder-remove";
+    remove.textContent = "×";
+    remove.title = "删除空文件夹";
+    remove.addEventListener("click", async (event) => {
+      event.stopPropagation();
+      if (!confirm(`删除文件夹「${folder}」？（只能删除空文件夹）`)) return;
+      try {
+        await api(`/api/folders?name=${encodeURIComponent(folder)}`, { method: "DELETE" });
+        if (selectedFolder === folder) selectedFolder = "全部";
+        await loadLibrary();
+        showToast("文件夹已删除。");
+      } catch (error) {
+        showToast(error.message);
+      }
+    });
+
+    button.append(remove);
+    list.append(button);
+  }
+}
+
+function renderItems() {
+  const list = $("#itemList");
+  list.innerHTML = "";
+  const query = $("#itemSearch").value.trim().toLowerCase();
+
+  const visible = allItems()
+    .filter((item) => (selectedFolder === "全部" ? true : item.folder === selectedFolder))
+    .filter((item) =>
+      !query ? true : [item.title, item.description, item.meta].join(" ").toLowerCase().includes(query)
+    )
+    .sort((a, b) => String(b.date).localeCompare(String(a.date)));
 
   if (visible.length === 0) {
     const empty = document.createElement("p");
     empty.className = "row-meta";
-    empty.textContent = "没有匹配的文章。";
+    empty.textContent = "这个文件夹还没有内容。";
     list.append(empty);
     return;
   }
 
-  for (const post of visible) {
+  for (const item of visible) {
     const row = document.createElement("article");
     row.className = "row";
+    row.draggable = true;
+    row.dataset.kind = item.kind;
+    row.dataset.id = item.id;
+    row.addEventListener("dragstart", (event) => {
+      event.dataTransfer.setData("text/plain", JSON.stringify({ kind: item.kind, id: item.id }));
+      event.dataTransfer.effectAllowed = "move";
+    });
 
     const main = document.createElement("div");
     main.className = "row-main";
 
     const title = document.createElement("button");
-    title.className = "row-title";
     title.type = "button";
-    title.textContent = post.title;
-    title.addEventListener("click", () => openPost(post.id));
+    title.className = "row-title";
+    title.textContent = item.title;
+    title.addEventListener("click", () => {
+      if (item.kind === "note") openPost(item.id);
+      else window.open(item.href, "_blank");
+    });
 
     const meta = document.createElement("p");
     meta.className = "row-meta";
-    meta.textContent = [post.pubDate, post.category, ...(post.tags || [])].filter(Boolean).join(" · ");
+    meta.textContent = [
+      item.kind === "note" ? "笔记" : "文件",
+      item.meta,
+      item.date,
+      item.bytes ? `${(item.bytes / 1024).toFixed(0)} KB` : ""
+    ]
+      .filter(Boolean)
+      .join(" · ");
 
     main.append(title, meta);
 
     const actions = document.createElement("div");
     actions.className = "row-actions";
 
+    const open = document.createElement("a");
+    open.href = item.href;
+    open.target = "_blank";
+    open.rel = "noreferrer";
+    open.textContent = "打开";
+
     const edit = document.createElement("button");
     edit.type = "button";
     edit.textContent = "编辑";
-    edit.addEventListener("click", () => openPost(post.id));
+    edit.addEventListener("click", () => {
+      if (item.kind === "note") openPost(item.id);
+      else showToast("文件条目的标题请在「站点」或直接上传时设置；这里只支持移动和删除。");
+    });
 
-    const view = document.createElement("a");
-    view.href = `http://localhost:4321/notes/${encodeURIComponent(post.id)}`;
-    view.target = "_blank";
-    view.rel = "noreferrer";
-    view.textContent = "预览";
+    const del = document.createElement("button");
+    del.type = "button";
+    del.textContent = "删除";
+    del.addEventListener("click", async () => {
+      if (!confirm(`删除「${item.title}」？本操作不可撤销。`)) return;
+      try {
+        const url =
+          item.kind === "note"
+            ? `/api/post?id=${encodeURIComponent(item.id)}`
+            : `/api/library?id=${encodeURIComponent(item.id)}`;
+        await api(url, { method: "DELETE" });
+        await loadLibrary();
+        showToast("已删除。");
+      } catch (error) {
+        showToast(error.message);
+      }
+    });
 
-    actions.append(view, edit);
+    actions.append(open, edit, del);
     row.append(main, actions);
     list.append(row);
   }
 }
 
-async function loadPosts() {
-  posts = await api("/api/posts");
-  renderPosts($("#postSearch").value);
+function selectFolder(name) {
+  selectedFolder = name;
+  $("#folderTitle").textContent = name === "全部" ? "全部内容" : name;
+  $("#itemSearch").value = "";
+  renderFolders();
+  renderItems();
 }
 
-async function openPost(id) {
-  const post = await api(`/api/post?id=${encodeURIComponent(id)}`);
-  editingId = id;
-  $("#fTitle").value = post.title;
-  $("#fCategory").value = post.category;
-  $("#fDate").value = post.pubDate || todayValue();
-  $("#fTags").value = (post.tags || []).join(", ");
-  $("#fDescription").value = post.description;
-  $("#fBody").value = post.body;
-  $("#preview").classList.add("hidden");
-  $("#fBody").classList.remove("hidden");
-  $("#togglePreview").textContent = "预览";
-  showEditor(true);
+async function loadLibrary() {
+  const [postList, docList, folderList] = await Promise.all([
+    api("/api/posts"),
+    api("/api/library"),
+    api("/api/folders")
+  ]);
+  posts = postList;
+  docs = docList;
+  folders = folderList;
+  renderFolders();
+  renderItems();
+  renderFolderOptions();
+  if (selectedFolder === "全部") $("#folderTitle").textContent = "全部内容";
+}
+
+function renderFolderOptions() {
+  const select = $("#fFolder");
+  select.innerHTML = "";
+  for (const folder of folders) {
+    const option = document.createElement("option");
+    option.value = folder;
+    option.textContent = folder;
+    select.append(option);
+  }
 }
 
 function showEditor(show) {
   $("#postEditor").classList.toggle("hidden", !show);
-  $("#postList").classList.toggle("hidden", show);
-  $("#postSearch").classList.toggle("hidden", show);
-  $("#newPost").classList.toggle("hidden", show);
+  $("#itemList").classList.toggle("hidden", show);
+  $("#itemSearch").classList.toggle("hidden", show);
+  $("#dropZone").classList.toggle("hidden", show);
+  $("#newNote").classList.toggle("hidden", show);
+  $("#uploadBtn").classList.toggle("hidden", show);
 }
 
-function newPost() {
+function newNote() {
   editingId = null;
   $("#fTitle").value = "";
   $("#fCategory").value = "";
@@ -130,52 +282,68 @@ function newPost() {
   $("#fTags").value = "";
   $("#fDescription").value = "";
   $("#fBody").value = "";
+  $("#fFolder").value = selectedFolder === "全部" ? folders[0] || "其他" : selectedFolder;
   $("#preview").classList.add("hidden");
   $("#fBody").classList.remove("hidden");
   $("#togglePreview").textContent = "预览";
   showEditor(true);
 }
 
-async function savePost() {
-  const title = $("#fTitle").value.trim();
-  if (!title) {
-    showToast("标题不能为空");
-    return;
-  }
-
-  const payload = {
-    id: editingId,
-    title,
-    category: $("#fCategory").value.trim() || "笔记",
-    pubDate: $("#fDate").value || todayValue(),
-    tags: $("#fTags").value,
-    description: $("#fDescription").value.trim(),
-    body: $("#fBody").value
-  };
-
+async function openPost(id) {
   try {
-    const result = await api("/api/post", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload)
-    });
-    editingId = result.id;
-    showToast("已保存。记得发布上线。");
-    await loadPosts();
+    const post = await api(`/api/post?id=${encodeURIComponent(id)}`);
+    editingId = id;
+    $("#fTitle").value = post.title;
+    $("#fCategory").value = post.category;
+    $("#fDate").value = post.pubDate || todayValue();
+    $("#fTags").value = (post.tags || []).join(", ");
+    $("#fDescription").value = post.description;
+    $("#fBody").value = post.body;
+    $("#fFolder").value = post.folder || folders[0] || "其他";
+    $("#preview").classList.add("hidden");
+    $("#fBody").classList.remove("hidden");
+    $("#togglePreview").textContent = "预览";
+    showEditor(true);
   } catch (error) {
     showToast(error.message);
   }
 }
 
-async function removePost() {
-  if (!editingId) return;
-  if (!confirm("确定删除这篇文章？本操作不可撤销。")) return;
+async function savePost() {
+  const title = $("#fTitle").value.trim();
+  if (!title) return showToast("标题不能为空");
 
+  try {
+    const result = await api("/api/post", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        id: editingId,
+        title,
+        category: $("#fCategory").value.trim() || "笔记",
+        folder: $("#fFolder").value || "其他",
+        pubDate: $("#fDate").value || todayValue(),
+        tags: $("#fTags").value,
+        description: $("#fDescription").value.trim(),
+        body: $("#fBody").value
+      })
+    });
+    editingId = result.id;
+    await loadLibrary();
+    showToast("已保存。记得发布上线。");
+  } catch (error) {
+    showToast(error.message);
+  }
+}
+
+async function deleteEditingPost() {
+  if (!editingId) return;
+  if (!confirm("确定删除这篇文章？")) return;
   try {
     await api(`/api/post?id=${encodeURIComponent(editingId)}`, { method: "DELETE" });
     editingId = null;
     showEditor(false);
-    await loadPosts();
+    await loadLibrary();
     showToast("已删除。");
   } catch (error) {
     showToast(error.message);
@@ -208,147 +376,131 @@ async function togglePreview() {
   }
 }
 
-function renderDocs() {
-  const list = $("#docList");
-  list.innerHTML = "";
-
-  if (docs.length === 0) {
-    const empty = document.createElement("p");
-    empty.className = "row-meta";
-    empty.textContent = "还没有资料。";
-    list.append(empty);
-    return;
-  }
-
-  for (const doc of docs) {
-    const row = document.createElement("article");
-    row.className = "row";
-
-    const main = document.createElement("div");
-    main.className = "row-main";
-
-    const title = document.createElement("span");
-    title.className = "row-title";
-    title.textContent = doc.title;
-
-    const meta = document.createElement("p");
-    meta.className = "row-meta";
-    meta.textContent = [doc.pubDate, doc.category, doc.file, `${(doc.bytes / 1024).toFixed(0)} KB`]
-      .filter(Boolean)
-      .join(" · ");
-
-    main.append(title, meta);
-
-    const actions = document.createElement("div");
-    actions.className = "row-actions";
-
-    const view = document.createElement("a");
-    view.href = `http://localhost:4321/library/${encodeURIComponent(doc.id)}`;
-    view.target = "_blank";
-    view.rel = "noreferrer";
-    view.textContent = "预览";
-
-    const del = document.createElement("button");
-    del.type = "button";
-    del.textContent = "删除";
-    del.addEventListener("click", async () => {
-      if (!confirm(`删除资料「${doc.title}」及其文件？`)) return;
-      try {
-        await api(`/api/library?id=${encodeURIComponent(doc.id)}`, { method: "DELETE" });
-        await loadDocs();
-        showToast("已删除资料。");
-      } catch (error) {
-        showToast(error.message);
-      }
-    });
-
-    actions.append(view, del);
-    row.append(main, actions);
-    list.append(row);
-  }
-}
-
-async function loadDocs() {
-  docs = await api("/api/library");
-  renderDocs();
-}
-
 async function uploadFile(file) {
   if (file.size > 50 * 1024 * 1024) {
     showToast(`${file.name} 超过 50MB，已跳过。`);
     return;
   }
 
+  const folder = selectedFolder === "全部" ? "其他" : selectedFolder;
   const params = new URLSearchParams({
     name: file.name,
     title: file.name.replace(/\.[^.]+$/, ""),
-    category: $("#uploadCategory").value.trim() || "资料",
-    tags: $("#uploadTags").value.trim()
+    category: folder,
+    folder,
+    tags: ""
   });
 
-  const response = await fetch(`/api/upload?${params}`, {
-    method: "POST",
-    body: file
-  });
+  const response = await fetch(`/api/upload?${params}`, { method: "POST", body: file });
   const data = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(data.error || "上传失败");
 
   if (data.kind === "inbox") {
     showToast(`${file.name} 已放入 inbox，请到「操作与日志」点「导入 inbox」。`);
   } else {
-    showToast(`${file.name} 已加入资料库。`);
+    showToast(`${file.name} 已放入「${folder}」。`);
   }
 }
 
 async function handleFiles(fileList) {
   const files = Array.from(fileList);
-  if (!files.length) return;
-
   try {
-    for (const file of files) {
-      await uploadFile(file);
-    }
-    await loadDocs();
+    for (const file of files) await uploadFile(file);
+    await loadLibrary();
   } catch (error) {
     showToast(error.message);
   }
 }
 
-async function loadSettings() {
-  const config = await api("/api/config");
+function addLinkRow(link = { label: "", url: "" }) {
+  const row = document.createElement("div");
+  row.className = "link-row";
+
+  const label = document.createElement("input");
+  label.className = "link-label";
+  label.placeholder = "名称，例如 GitHub";
+  label.value = link.label;
+
+  const url = document.createElement("input");
+  url.className = "link-url";
+  url.placeholder = "https://... 或 mailto:...";
+  url.value = link.url;
+
+  const remove = document.createElement("button");
+  remove.type = "button";
+  remove.className = "mini danger-text";
+  remove.textContent = "移除";
+  remove.addEventListener("click", () => row.remove());
+
+  row.append(label, url, remove);
+  $("#aboutLinks").append(row);
+}
+
+async function loadSite() {
+  const [config, about] = await Promise.all([api("/api/config"), api("/api/about")]);
   $("#sName").value = config.name;
   $("#sLatin").value = config.latinName;
   $("#sTitle").value = config.title;
   $("#sDescription").value = config.description;
+  $("#sHomeIntro").value = config.homeIntro;
   $("#sHeroTitle").value = config.heroTitle;
   $("#sHeroSubtitle").value = config.heroSubtitle;
   $("#sFooter").value = config.footerNote;
   $("#sAuthor").value = config.author;
   $("#sEmail").value = config.email;
   $("#sYear").value = config.startYear;
+
+  $("#aTitle").value = about.title;
+  $("#aDescription").value = about.description;
+  $("#aBody").value = about.body;
+  $("#aboutLinks").innerHTML = "";
+  for (const link of about.links) addLinkRow(link);
+  if (about.links.length === 0) addLinkRow();
 }
 
 async function saveSettings() {
-  const patch = {
-    name: $("#sName").value,
-    latinName: $("#sLatin").value,
-    title: $("#sTitle").value,
-    description: $("#sDescription").value,
-    heroTitle: $("#sHeroTitle").value,
-    heroSubtitle: $("#sHeroSubtitle").value,
-    footerNote: $("#sFooter").value,
-    author: $("#sAuthor").value,
-    email: $("#sEmail").value,
-    startYear: Number($("#sYear").value) || new Date().getFullYear()
-  };
-
   try {
     await api("/api/config", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(patch)
+      body: JSON.stringify({
+        name: $("#sName").value,
+        latinName: $("#sLatin").value,
+        title: $("#sTitle").value,
+        description: $("#sDescription").value,
+        homeIntro: $("#sHomeIntro").value,
+        heroTitle: $("#sHeroTitle").value,
+        heroSubtitle: $("#sHeroSubtitle").value,
+        footerNote: $("#sFooter").value,
+        author: $("#sAuthor").value,
+        email: $("#sEmail").value,
+        startYear: Number($("#sYear").value) || new Date().getFullYear()
+      })
     });
-    showToast("设置已保存。记得发布上线。");
+    showToast("站点信息已保存。记得发布上线。");
+  } catch (error) {
+    showToast(error.message);
+  }
+}
+
+async function saveAbout() {
+  const links = $$(".link-row").map((row) => ({
+    label: row.querySelector(".link-label").value.trim(),
+    url: row.querySelector(".link-url").value.trim()
+  }));
+
+  try {
+    await api("/api/about", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        title: $("#aTitle").value,
+        description: $("#aDescription").value,
+        body: $("#aBody").value,
+        links
+      })
+    });
+    showToast("关于页已保存。记得发布上线。");
   } catch (error) {
     showToast(error.message);
   }
@@ -357,10 +509,8 @@ async function saveSettings() {
 function switchTab(tab) {
   $$(".nav").forEach((button) => button.classList.toggle("active", button.dataset.tab === tab));
   $$(".panel").forEach((panel) => panel.classList.toggle("hidden", panel.id !== `panel-${tab}`));
-
-  if (tab === "library") loadDocs().catch((error) => showToast(error.message));
-  if (tab === "settings") loadSettings().catch((error) => showToast(error.message));
-  if (tab === "posts") loadPosts().catch((error) => showToast(error.message));
+  if (tab === "library") loadLibrary().catch((error) => showToast(error.message));
+  if (tab === "site") loadSite().catch((error) => showToast(error.message));
 }
 
 function appendLog(text) {
@@ -371,10 +521,7 @@ function appendLog(text) {
 }
 
 async function startJob(action) {
-  if (activeJob) {
-    showToast("已有任务在运行，请稍候。");
-    return;
-  }
+  if (activeJob) return showToast("已有任务在运行，请稍候。");
 
   switchTab("jobs");
   $("#jobLog").textContent = "";
@@ -406,20 +553,25 @@ async function pollJob() {
       return;
     }
 
-    $(".primary[data-job='deploy']")?.removeAttribute("disabled");
     activeJob = null;
     window.clearTimeout(jobTimer);
-
-    if (data.status === "success") {
-      showToast("任务完成。");
-    } else {
-      showToast("任务失败，请查看日志。");
-    }
-
-    await loadPosts();
+    showToast(data.status === "success" ? "任务完成。" : "任务失败，请查看日志。");
+    await loadLibrary().catch(() => {});
   } catch (error) {
     showToast(error.message);
     activeJob = null;
+  }
+}
+
+async function refreshDevStatus() {
+  try {
+    const data = await api("/api/dev");
+    const status = $("#devStatus");
+    status.classList.toggle("on", data.running);
+    status.innerHTML = `<i></i>${data.running ? "本地预览运行中" : "本地预览未启动"}`;
+    $("#localLink").classList.toggle("disabled", !data.running);
+  } catch {
+    // admin server unavailable; leave status as is
   }
 }
 
@@ -428,17 +580,36 @@ function bindEvents() {
     button.addEventListener("click", () => switchTab(button.dataset.tab));
   });
 
-  $("#postSearch").addEventListener("input", (event) => renderPosts(event.target.value));
-  $("#newPost").addEventListener("click", newPost);
+  $("#itemSearch").addEventListener("input", renderItems);
+
+  $("#newFolder").addEventListener("click", async () => {
+    const name = prompt("新文件夹名称（例如：英语、竞赛）");
+    if (!name?.trim()) return;
+    try {
+      await api("/api/folders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name })
+      });
+      await loadLibrary();
+      selectFolder(name.trim());
+      showToast("文件夹已创建。");
+    } catch (error) {
+      showToast(error.message);
+    }
+  });
+
+  $("#newNote").addEventListener("click", newNote);
   $("#savePost").addEventListener("click", savePost);
-  $("#deletePost").addEventListener("click", removePost);
+  $("#deletePost").addEventListener("click", deleteEditingPost);
   $("#backToList").addEventListener("click", () => showEditor(false));
   $("#togglePreview").addEventListener("click", togglePreview);
 
+  $("#uploadBtn").addEventListener("click", () => $("#fileInput").click());
+  $("#fileInput").addEventListener("change", () => handleFiles($("#fileInput").files));
+
   const zone = $("#dropZone");
-  const input = $("#fileInput");
-  zone.addEventListener("click", () => input.click());
-  input.addEventListener("change", () => handleFiles(input.files));
+  zone.addEventListener("click", () => $("#fileInput").click());
   zone.addEventListener("dragover", (event) => {
     event.preventDefault();
     zone.classList.add("dragging");
@@ -451,6 +622,24 @@ function bindEvents() {
   });
 
   $("#saveSettings").addEventListener("click", saveSettings);
+  $("#saveAbout").addEventListener("click", saveAbout);
+  $("#addLink").addEventListener("click", () => addLinkRow());
+
+  $("#localLink").addEventListener("click", async (event) => {
+    if (!event.currentTarget.classList.contains("disabled")) return;
+    event.preventDefault();
+    showToast("正在启动本地预览…");
+    try {
+      await api("/api/dev", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "start" })
+      });
+      setTimeout(refreshDevStatus, 1000);
+    } catch (error) {
+      showToast(error.message);
+    }
+  });
 
   $$("[data-job]").forEach((button) => {
     button.addEventListener("click", () => startJob(button.dataset.job));
@@ -461,11 +650,9 @@ function bindEvents() {
 
 async function init() {
   bindEvents();
-  try {
-    await loadPosts();
-  } catch (error) {
-    showToast(error.message);
-  }
+  await loadLibrary().catch((error) => showToast(error.message));
+  refreshDevStatus();
+  window.setInterval(refreshDevStatus, 4000);
 }
 
 init();

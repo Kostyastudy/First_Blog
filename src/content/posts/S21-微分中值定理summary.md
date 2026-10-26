@@ -3,6 +3,7 @@ title: "S21 · 微分中值定理summary.pdf"
 description: "S21 · 微分中值定理summary.pdf 来源：C:\\Users\\29459\\Desktop\\微积分Ⅰ\\微分中值定理summary.pdf。共 24 个 PDF 页面。以下页码按 PDF 计数，…"
 pubDate: 2026-10-18
 category: "微积分Ⅰ"
+folder: "微积分Ⅰ"
 tags: []
 ---
 来源：`C:\Users\29459\Desktop\微积分Ⅰ\微分中值定理summary.pdf`。共 24 个 PDF 页面。以下页码按 PDF 计数，不使用可能不同的幻灯片页脚编号。

@@ -3,6 +3,7 @@ title: "Attention Is All You Need（论文原文）"
 description: "Transformer 原始论文，Vaswani 等，2017。"
 pubDate: 2026-09-16
 category: "论文"
+folder: "其他"
 tags: ["论文", "Transformer"]
 file: "/files/attention-is-all-you-need.pdf"
 bytes: 2215244
