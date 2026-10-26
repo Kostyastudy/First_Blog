@@ -381,8 +381,13 @@ function startJob(action) {
     code = await runCommand("git", ["commit", "-m", `content-update-from-admin-${today()}`], log);
     if (code !== 0) throw new Error(`git commit 失败（exit ${code}）`);
 
-    log(`$ git push`);
-    code = await runCommand("git", ["push"], log);
+    code = 1;
+    for (let attempt = 1; attempt <= 3; attempt += 1) {
+      log(`$ git push${attempt > 1 ? `（第 ${attempt} 次尝试）` : ""}`);
+      code = await runCommand("git", ["push"], log);
+      if (code === 0) break;
+      if (attempt < 3) await new Promise((resolve) => setTimeout(resolve, 3000));
+    }
     if (code !== 0) throw new Error(`git push 失败（exit ${code}）。请确认 Clash 已开启。`);
     log("已推送，Vercel 正在自动部署（约 1–2 分钟）。");
   };
