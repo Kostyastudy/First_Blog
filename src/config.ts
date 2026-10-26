@@ -4,9 +4,9 @@ export const siteConfig = {
   title: "水流 · Kostya的个人成长档案",
   description: "本档案记录了学习生活中的点滴。水流的目标是成为一个知识库，分享有价值的内容。",
   heroTitle: "学习笔记",
-  heroSubtitle: "与资料归档",
-  footerNote: "学习笔记与资料归档。",
-  author: "我",
+  heroSubtitle: "与资料共享",
+  footerNote: "学习笔记与资料共享",
+  author: "Kostya",
   email: "kostyavaxio@gmail.com",
   startYear: 2026,
   nav: [
