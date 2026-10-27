@@ -13,6 +13,7 @@ const posts = defineCollection({
     updatedDate: z.coerce.date().optional(),
     category: z.string().default("笔记"),
     folder: z.string().optional(),
+    kind: z.enum(["note", "material"]).default("note"),
     tags: z.array(z.string()).default([]),
     readingTime: z.string().optional(),
     featured: z.boolean().default(false),
@@ -35,6 +36,7 @@ const library = defineCollection({
     updatedDate: z.coerce.date().optional(),
     category: z.string().default("资料"),
     folder: z.string().optional(),
+    kind: z.enum(["note", "material"]).default("material"),
     tags: z.array(z.string()).default([]),
     bytes: z.number().optional(),
     draft: z.boolean().default(false)

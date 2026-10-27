@@ -1,0 +1,125 @@
+---
+import { BookOpen, FileText, Folder } from "@lucide/astro";
+import BaseLayout from "../../../layouts/BaseLayout.astro";
+import { formatBytes, formatDate, getSortedDocs, getSortedPosts } from "../../../utils/posts";
+import { buildContentItems } from "../../../utils/library-items";
+import {
+  collectFolders,
+  directChildren,
+  folderHref,
+  folderName,
+  folderTrail,
+  isInside,
+  readFolderList
+} from "../../../utils/folders";
+
+const posts = await getSortedPosts();
+const docs = await getSortedDocs();
+const items = buildContentItems(posts, docs);
+const folders = collectFolders(readFolderList(), items.map((item) => item.folder));
+
+export async function getStaticPaths() {
+  return folders.map((folder) => ({
+    params: { path: folder }
+  }));
+}
+
+const current = String(Astro.params.path ?? "");
+const subfolders = directChildren(folders, current).map((path) => ({
+  path,
+  name: folderName(path),
+  total: items.filter((item) => isInside(item.folder, path)).length,
+  notes: items.filter((item) => isInside(item.folder, path) && item.kind === "note").length,
+  materials: items.filter((item) => isInside(item.folder, path) && item.kind === "material").length
+}));
+
+const currentItems = items.filter((item) => item.folder === current);
+const notes = currentItems.filter((item) => item.kind === "note");
+const materials = currentItems.filter((item) => item.kind === "material");
+const trail = folderTrail(current);
+---
+
+<BaseLayout title={`${folderName(current)} · 资料库`} description={`${current} 文件夹下的笔记与资料。`}>
+  <section class="simple-hero simple-hero--compact shell">
+    <nav class="breadcrumb" aria-label="路径">
+      <a href="/library">资料库</a>
+      {
+        trail.map((part) =>
+          part.path === current ? (
+            <span>/ {part.name}</span>
+          ) : (
+            <a href={folderHref(part.path)}>/ {part.name}</a>
+          )
+        )
+      }
+    </nav>
+    <h1>{folderName(current)}</h1>
+    <p>{notes.length} 篇笔记 · {materials.length} 份资料</p>
+  </section>
+
+  <section class="shell simple-section">
+    {
+      subfolders.length > 0 && (
+        <div class="folder-grid folder-grid--compact">
+          {subfolders.map((folder) => (
+            <a class="folder-card" href={folderHref(folder.path)}>
+              <Folder size={18} stroke-width={1.6} aria-hidden="true" />
+              <strong>{folder.name}</strong>
+              <span>{folder.total} 项</span>
+              <span class="folder-card__split">
+                <em><BookOpen size={13} stroke-width={1.6} aria-hidden="true" />{folder.notes} 笔记</em>
+                <em><FileText size={13} stroke-width={1.6} aria-hidden="true" />{folder.materials} 资料</em>
+              </span>
+            </a>
+          ))}
+        </div>
+      )
+    }
+
+    <div class="split-columns">
+      <section>
+        <h2 class="column-title">笔记 <span>{notes.length}</span></h2>
+        <ul class="doc-list">
+          {
+            notes.map((item) => (
+              <li class="doc-row">
+                <BookOpen size={17} stroke-width={1.6} aria-hidden="true" />
+                <div class="doc-row__body">
+                  <a class="doc-row__title" href={item.href}>{item.title}</a>
+                  <p class="doc-row__meta">
+                    {item.fileType ?? "笔记"} · {formatDate(item.date)}
+                    {item.bytes ? ` · ${formatBytes(item.bytes)}` : ""}
+                  </p>
+                  {item.description && <p class="doc-row__description">{item.description}</p>}
+                </div>
+              </li>
+            ))
+          }
+        </ul>
+        {notes.length === 0 && <p class="empty-state">这个文件夹里还没有笔记。</p>}
+      </section>
+
+      <section>
+        <h2 class="column-title">资料 <span>{materials.length}</span></h2>
+        <ul class="doc-list">
+          {
+            materials.map((item) => (
+              <li class="doc-row">
+                <FileText size={17} stroke-width={1.6} aria-hidden="true" />
+                <div class="doc-row__body">
+                  <a class="doc-row__title" href={item.href}>{item.title}</a>
+                  <p class="doc-row__meta">
+                    {item.fileType ?? "文件"} · {formatDate(item.date)}
+                    {item.bytes ? ` · ${formatBytes(item.bytes)}` : ""}
+                  </p>
+                  {item.description && <p class="doc-row__description">{item.description}</p>}
+                </div>
+              </li>
+            ))
+          }
+        </ul>
+        {materials.length === 0 && <p class="empty-state">这个文件夹里还没有资料。</p>}
+      </section>
+    </div>
+  </section>
+</BaseLayout>
