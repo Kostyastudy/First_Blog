@@ -6,6 +6,7 @@ import BaseLayout from "../layouts/BaseLayout.astro";
 import { siteConfig } from "../config";
 import { formatBytes, formatDate, getSortedDocs, getSortedPosts } from "../utils/posts";
 import { buildContentItems } from "../utils/library-items";
+import { collectFolders, folderName, isInside, parentOf } from "../utils/folders";
 
 const folders = JSON.parse(
   readFileSync(path.join(process.cwd(), "src", "data", "folders.json"), "utf8")
@@ -14,16 +15,28 @@ const folders = JSON.parse(
 const posts = await getSortedPosts();
 const docs = await getSortedDocs();
 const items = buildContentItems(posts, docs);
+const allFolders = collectFolders(folders, items.map((item) => item.folder));
 
-const topFolders = folders.filter((folder) => !folder.includes("/"));
+const topFolders = [
+  ...folders.filter((folder) => !folder.includes("/")),
+  ...allFolders.filter((folder) => !folder.includes("/") && !folders.includes(folder))
+];
 const folderCounts = topFolders
   .map((name) => ({
     name,
-    count: items.filter(
-      (item) => item.folder === name || item.folder.startsWith(`${name}/`)
-    ).length
+    count: items.filter((item) => isInside(item.folder, name)).length
   }))
   .filter((folder) => folder.count > 0);
+const subfolderGroups = folderCounts.map((folder) => ({
+  ...folder,
+  children: allFolders
+    .filter((path) => parentOf(path) === folder.name)
+    .map((path) => ({
+      path,
+      name: folderName(path),
+      count: items.filter((item) => isInside(item.folder, path)).length
+    }))
+}));
 
 const hasItems = items.length > 0;
 ---
@@ -87,6 +100,34 @@ const hasItems = items.length > 0;
                 </button>
               ))}
             </div>
+
+            {subfolderGroups
+              .filter((group) => group.children.length > 0)
+              .map((group) => (
+                <div class="subfolder-row" data-subrow={group.name} hidden>
+                  <div class="filter-row" role="group" aria-label={`${group.name}的子文件夹`}>
+                    <button
+                      class="filter-chip is-active"
+                      type="button"
+                      data-subfolder="all"
+                      data-subparent={group.name}
+                    >
+                      全部
+                    </button>
+                    {group.children.map((child) => (
+                      <button
+                        class="filter-chip"
+                        type="button"
+                        data-subfolder={child.path}
+                        data-subparent={group.name}
+                      >
+                        {child.name}
+                        <span>{child.count}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))}
           </div>
 
           <p class="result-count" data-result-count aria-live="polite">显示 {items.length} 项</p>
@@ -140,9 +181,16 @@ const hasItems = items.length > 0;
   );
   const resultCount = document.querySelector<HTMLElement>("[data-result-count]");
   const emptyState = document.querySelector<HTMLElement>("[data-empty-state]");
+  const subRows = Array.from(document.querySelectorAll<HTMLElement>("[data-subrow]"));
+  const subButtons = Array.from(
+    document.querySelectorAll<HTMLButtonElement>("[data-subfolder]")
+  );
   let activeFolder = "all";
+  let activeSub = "all";
 
   const normalize = (value: string) => value.trim().toLowerCase();
+  const isInside = (folder: string, parent: string) =>
+    parent === "all" || folder === parent || folder.startsWith(`${parent}/`);
 
   const updateResults = () => {
     const query = normalize(searchInput?.value ?? "");
@@ -151,8 +199,7 @@ const hasItems = items.length > 0;
     contentItems.forEach((item) => {
       const folder = item.dataset.folder ?? "";
       const searchable = item.dataset.search ?? "";
-      const matchesFolder =
-        activeFolder === "all" || folder === activeFolder || folder.startsWith(`${activeFolder}/`);
+      const matchesFolder = isInside(folder, activeSub === "all" ? activeFolder : activeSub);
       const matchesQuery = !query || searchable.includes(query);
       const isVisible = matchesFolder && matchesQuery;
 
@@ -167,7 +214,30 @@ const hasItems = items.length > 0;
   filterButtons.forEach((button) => {
     button.addEventListener("click", () => {
       activeFolder = button.dataset.filterFolder ?? "all";
+      activeSub = "all";
       filterButtons.forEach((item) => item.classList.toggle("is-active", item === button));
+
+      subRows.forEach((row) => {
+        const matches = row.dataset.subrow === activeFolder;
+        row.hidden = !matches;
+        if (matches) {
+          row.querySelectorAll<HTMLButtonElement>("[data-subfolder]").forEach((item) => {
+            item.classList.toggle("is-active", item.dataset.subfolder === "all");
+          });
+        }
+      });
+
+      updateResults();
+    });
+  });
+
+  subButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      activeSub = button.dataset.subfolder ?? "all";
+      const parent = button.dataset.subparent;
+      subButtons
+        .filter((item) => item.dataset.subparent === parent)
+        .forEach((item) => item.classList.toggle("is-active", item === button));
       updateResults();
     });
   });

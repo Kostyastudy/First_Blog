@@ -45,6 +45,18 @@ const isInside = (folder, parent) =>
 
 const folderDepth = (folder) => folder.split("/").filter(Boolean).length;
 const folderName = (folder) => folder.split("/").pop();
+const parentOf = (folder) => (folder.includes("/") ? folder.slice(0, folder.lastIndexOf("/")) : "");
+const expandedFolders = new Set();
+
+const ancestorsOf = (folder) => {
+  const result = [];
+  let current = parentOf(folder);
+  while (current) {
+    result.push(current);
+    current = parentOf(current);
+  }
+  return result;
+};
 
 const allItems = () =>
   [
@@ -91,19 +103,36 @@ function renderFolders() {
   list.append(all);
 
   const sorted = [...folders].sort((a, b) => a.localeCompare(b, "zh-CN"));
+  const childrenOf = (parent) => sorted.filter((folder) => parentOf(folder) === parent);
+  const visible = (folder) => {
+    const parent = parentOf(folder);
+    if (!parent) return true;
+    return expandedFolders.has(parent) && visible(parent);
+  };
 
-  for (const folder of sorted) {
+  for (const folder of sorted.filter(visible)) {
     const depth = folderDepth(folder);
+    const hasChildren = childrenOf(folder).length > 0;
+    const expanded = expandedFolders.has(folder);
     const button = document.createElement("button");
     button.type = "button";
     button.className = `folder-btn${selectedFolder === folder ? " active" : ""}`;
     button.style.paddingLeft = `${10 + (depth - 1) * 16}px`;
     button.title = folder;
     button.innerHTML = `<span class="folder-label"></span><em></em>`;
-    button.querySelector(".folder-label").textContent = folderName(folder);
+    button.querySelector(".folder-label").textContent = `${hasChildren ? (expanded ? "▾ " : "▸ ") : ""}${folderName(folder)}`;
     button.querySelector("em").textContent = String(folderCount(folder));
 
-    button.addEventListener("click", () => selectFolder(folder));
+    button.addEventListener("click", () => {
+      if (hasChildren) {
+        if (expandedFolders.has(folder) && selectedFolder === folder) {
+          expandedFolders.delete(folder);
+        } else {
+          expandedFolders.add(folder);
+        }
+      }
+      selectFolder(folder);
+    });
     button.addEventListener("dragover", (event) => {
       event.preventDefault();
       button.classList.add("drop");
@@ -252,6 +281,10 @@ function renderItems() {
 
 function selectFolder(name) {
   selectedFolder = name;
+  if (name !== "全部") {
+    ancestorsOf(name).forEach((folder) => expandedFolders.add(folder));
+    expandedFolders.add(name);
+  }
   $("#folderTitle").textContent = name === "全部" ? "全部内容" : name;
   $("#itemSearch").value = "";
   renderFolders();
@@ -267,6 +300,10 @@ async function loadLibrary() {
   posts = postList;
   docs = docList;
   folders = folderList;
+  if (selectedFolder !== "全部") {
+    ancestorsOf(selectedFolder).forEach((folder) => expandedFolders.add(folder));
+    expandedFolders.add(selectedFolder);
+  }
   renderFolders();
   renderItems();
   renderFolderOptions();
@@ -634,6 +671,7 @@ function bindEvents() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: fullPath })
       });
+      if (parent) expandedFolders.add(parent);
       await loadLibrary();
       selectFolder(fullPath);
       showToast("文件夹已创建。");

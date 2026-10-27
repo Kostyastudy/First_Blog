@@ -2555,3 +2555,18 @@ body::before {
     gap: 32px;
   }
 }
+
+.subfolder-row {
+  margin-top: 6px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
+.subfolder-row[hidden] {
+  display: none;
+}
+
+.subfolder-row .filter-chip {
+  font-size: 0.72rem;
+  min-height: 28px;
+}
