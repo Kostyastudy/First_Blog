@@ -280,7 +280,7 @@ function renderFolderOptions() {
   for (const folder of sorted) {
     const option = document.createElement("option");
     option.value = folder;
-    option.textContent = `${"— ".repeat(folderDepth(folder) - 1)}${folderName(folder)}`;
+    option.textContent = folder;
     select.append(option);
   }
 }
@@ -349,8 +349,11 @@ async function savePost() {
       })
     });
     editingId = result.id;
+    const savedFolder = $("#fFolder").value || "其他";
+    showEditor(false);
     await loadLibrary();
-    showToast(`已保存到「${$("#fFolder").value || "其他"}」。记得发布上线。`);
+    selectFolder(savedFolder);
+    showToast(`已保存到「${savedFolder}」。记得发布上线。`);
   } catch (error) {
     showToast(error.message);
   }
