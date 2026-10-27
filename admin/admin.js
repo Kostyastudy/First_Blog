@@ -283,7 +283,6 @@ function selectFolder(name) {
   selectedFolder = name;
   if (name !== "全部") {
     ancestorsOf(name).forEach((folder) => expandedFolders.add(folder));
-    expandedFolders.add(name);
   }
   $("#folderTitle").textContent = name === "全部" ? "全部内容" : name;
   $("#itemSearch").value = "";
