@@ -5,6 +5,7 @@ import { Search } from "@lucide/astro";
 import BaseLayout from "../layouts/BaseLayout.astro";
 import { siteConfig } from "../config";
 import { formatBytes, formatDate, getSortedDocs, getSortedPosts } from "../utils/posts";
+import { buildContentItems } from "../utils/library-items";
 
 const folders = JSON.parse(
   readFileSync(path.join(process.cwd(), "src", "data", "folders.json"), "utf8")
@@ -12,57 +13,7 @@ const folders = JSON.parse(
 
 const posts = await getSortedPosts();
 const docs = await getSortedDocs();
-
-const noteFolder = (category: string, folder?: string) => {
-  if (folder) return folder;
-  if (["微积分Ⅰ", "导航", "复习"].includes(category)) return "微积分Ⅰ";
-  if (category === "线性代数") return "线性代数";
-  return "其他";
-};
-
-const docFolder = (category: string, title: string, folder?: string) => {
-  if (folder) return folder;
-  if (category === "保研") return "保研资料";
-  if (title.includes("班主任")) return "学习方法";
-  if (category === "论文" || title.includes("Attention")) return "其他";
-  return "微积分Ⅰ";
-};
-
-const items = [
-  ...posts.map((post) => ({
-    kind: "note" as const,
-    id: post.id,
-    title: post.data.title,
-    description: post.data.description,
-    date: post.data.updatedDate ?? post.data.pubDate,
-    folder: noteFolder(post.data.category, post.data.folder),
-    href: `/notes/${post.id}`,
-    label: "笔记",
-    search: [post.data.title, post.data.description, post.data.category, ...post.data.tags]
-      .join(" ")
-      .toLowerCase()
-  })),
-  ...docs.map((doc) => {
-    const extension = path.extname(doc.data.file).toLowerCase();
-    const label = extension === ".pdf" ? "PDF" : extension === ".docx" ? "Word" : "文件";
-    return {
-      kind: "file" as const,
-      id: doc.id,
-      title: doc.data.title,
-      description: doc.data.description,
-      date: doc.data.updatedDate ?? doc.data.pubDate,
-      folder: docFolder(doc.data.category, doc.data.title, doc.data.folder),
-      href: `/library/${doc.id}`,
-      label,
-      bytes: doc.data.bytes,
-      search: [doc.data.title, doc.data.description, doc.data.category, ...doc.data.tags]
-        .join(" ")
-        .toLowerCase()
-    };
-  })
-];
-
-items.sort((a, b) => b.date.valueOf() - a.date.valueOf());
+const items = buildContentItems(posts, docs);
 
 const folderCounts = folders
   .map((name) => ({

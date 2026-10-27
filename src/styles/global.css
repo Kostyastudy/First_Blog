@@ -2450,3 +2450,108 @@ body::before {
   font-family: var(--font-mono);
   font-size: 0.7rem;
 }
+
+.folder-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 14px;
+}
+
+.folder-card {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--paper-bright);
+  color: var(--ink);
+  transition: border-color 0.15s ease;
+}
+
+.folder-card:hover {
+  border-color: var(--coral);
+}
+
+.folder-card > svg {
+  color: var(--coral);
+}
+
+.folder-card strong {
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.folder-card > span {
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.folder-card__split {
+  display: flex;
+  gap: 14px;
+  margin-top: 4px;
+}
+
+.folder-card__split em {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--muted);
+  font-style: normal;
+  font-size: 0.74rem;
+}
+
+.folder-grid--compact {
+  margin-bottom: 30px;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+}
+
+.breadcrumb {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-bottom: 10px;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.breadcrumb a {
+  color: var(--ink-soft);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.split-columns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 42px;
+  margin-top: 12px;
+}
+
+.column-title {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 0 0 4px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--line-strong);
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.column-title span {
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+}
+
+@media (max-width: 780px) {
+  .split-columns {
+    grid-template-columns: 1fr;
+    gap: 32px;
+  }
+}

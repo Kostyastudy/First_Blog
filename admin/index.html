@@ -32,7 +32,7 @@
             <aside class="folder-pane">
               <div class="pane-head">
                 <span>文件夹</span>
-                <button class="mini" id="newFolder">+ 新建</button>
+                <button class="mini" id="newFolder">+ 新建文件夹</button>
               </div>
               <div id="folderList" class="folder-list"></div>
             </aside>
@@ -51,6 +51,15 @@
 
               <div class="drop-strip" id="dropZone">
                 拖入文件到当前文件夹（PDF / Word / PPT / ZIP / Markdown，单文件 ≤ 50MB）
+              </div>
+              <div class="upload-options">
+                <label>上传为
+                  <select id="uploadKind">
+                    <option value="material">资料</option>
+                    <option value="note">笔记</option>
+                  </select>
+                </label>
+                <span>笔记和资料都可以是 PDF 或 Word，按你上传时的选择归类。</span>
               </div>
               <input id="fileInput" type="file" multiple hidden />
 

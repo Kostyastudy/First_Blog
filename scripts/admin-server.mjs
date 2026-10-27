@@ -78,6 +78,7 @@ async function listPosts() {
         description: String(parsed.data.description ?? ""),
         category: String(parsed.data.category ?? ""),
         folder: String(parsed.data.folder ?? ""),
+        kind: parsed.data.kind === "material" ? "material" : "note",
         tags: Array.isArray(parsed.data.tags) ? parsed.data.tags : [],
         pubDate: dateOnly(parsed.data.pubDate),
         draft: Boolean(parsed.data.draft)
@@ -99,6 +100,7 @@ async function getPost(id) {
     description: String(parsed.data.description ?? ""),
     category: String(parsed.data.category ?? ""),
     folder: String(parsed.data.folder ?? ""),
+    kind: parsed.data.kind === "material" ? "material" : "note",
     tags: Array.isArray(parsed.data.tags) ? parsed.data.tags : [],
     pubDate: dateOnly(parsed.data.pubDate),
     body: parsed.content.replace(/^\n+/, "")
@@ -126,6 +128,7 @@ async function savePost(payload) {
     date: payload.pubDate || today(),
     category: String(payload.category || "笔记"),
     folder: String(payload.folder || "其他"),
+    kind: "note",
     tags: splitTags(payload.tags),
     extra: [
       `folder: ${JSON.stringify(String(payload.folder || "其他"))}`,
@@ -151,6 +154,7 @@ async function listLibrary() {
         file: String(parsed.data.file ?? ""),
         category: String(parsed.data.category ?? ""),
         folder: String(parsed.data.folder ?? ""),
+        kind: parsed.data.kind === "note" ? "note" : "material",
         tags: Array.isArray(parsed.data.tags) ? parsed.data.tags : [],
         bytes: Number(parsed.data.bytes ?? 0),
         pubDate: dateOnly(parsed.data.pubDate)
@@ -232,8 +236,11 @@ async function writeFolders(list) {
 
 async function createFolder(name) {
   const folders = await readFolders();
-  const trimmed = String(name ?? "").trim();
+  const trimmed = String(name ?? "")
+    .trim()
+    .replace(/^\/+|\/+$/g, "");
   if (!trimmed) throw new Error("文件夹名称不能为空");
+  if (trimmed.split("/").some((part) => !part.trim())) throw new Error("文件夹名称不合法");
   if (folders.includes(trimmed)) throw new Error("文件夹已存在");
   folders.push(trimmed);
   await writeFolders(folders);
@@ -242,8 +249,12 @@ async function createFolder(name) {
 
 async function deleteFolder(name) {
   const [posts, docs, folders] = await Promise.all([listPosts(), listLibrary(), readFolders()]);
-  const used = [...posts, ...docs].some((item) => item.folder === name);
+  const used = [...posts, ...docs].some(
+    (item) => item.folder === name || item.folder.startsWith(`${name}/`)
+  );
+  const hasChildren = folders.some((folder) => folder.startsWith(`${name}/`));
   if (used) throw new Error("文件夹里还有内容，先把条目移到其他文件夹");
+  if (hasChildren) throw new Error("还有子文件夹，先删除子文件夹");
   await writeFolders(folders.filter((folder) => folder !== name));
   return readFolders();
 }
@@ -501,6 +512,7 @@ async function handleUpload(req, res, url) {
   const title = String(url.searchParams.get("title") || name.replace(/\.[^.]+$/, "")).trim();
   const category = String(url.searchParams.get("category") || "资料").trim();
   const folder = String(url.searchParams.get("folder") || "其他").trim();
+  const kind = url.searchParams.get("kind") === "note" ? "note" : "material";
   const tags = splitTags(url.searchParams.get("tags") || "");
 
   const frontmatter = buildFrontmatter({
@@ -509,7 +521,12 @@ async function handleUpload(req, res, url) {
     date: today(),
     category,
     tags,
-    extra: [`file: ${JSON.stringify(fileUrl)}`, `bytes: ${size}`, `folder: ${JSON.stringify(folder)}`]
+    extra: [
+      `file: ${JSON.stringify(fileUrl)}`,
+      `bytes: ${size}`,
+      `folder: ${JSON.stringify(folder)}`,
+      `kind: ${JSON.stringify(kind)}`
+    ]
   });
 
   await writeFile(path.join(libraryDir, `${baseSlug}.md`), `${frontmatter}上传于写作台，可在资料库中下载。\n`, "utf8");

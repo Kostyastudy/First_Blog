@@ -40,10 +40,18 @@ const fileLabel = (file) => {
   return "文件";
 };
 
+const isInside = (folder, parent) =>
+  parent === "全部" || folder === parent || folder.startsWith(`${parent}/`);
+
+const folderDepth = (folder) => folder.split("/").filter(Boolean).length;
+const folderName = (folder) => folder.split("/").pop();
+
 const allItems = () =>
   [
     ...posts.map((post) => ({
-      kind: "note",
+      source: "post",
+      moveKind: "note",
+      kind: post.kind === "material" ? "material" : "note",
       id: post.id,
       title: post.title,
       description: post.description,
@@ -53,7 +61,9 @@ const allItems = () =>
       href: `http://localhost:4321/notes/${encodeURIComponent(post.id)}`
     })),
     ...docs.map((doc) => ({
-      kind: "file",
+      source: "doc",
+      moveKind: "doc",
+      kind: doc.kind === "note" ? "note" : "material",
       id: doc.id,
       title: doc.title,
       description: doc.description,
@@ -66,7 +76,7 @@ const allItems = () =>
   ];
 
 function folderCount(name) {
-  return allItems().filter((item) => (name === "全部" ? true : item.folder === name)).length;
+  return allItems().filter((item) => isInside(item.folder, name)).length;
 }
 
 function renderFolders() {
@@ -80,12 +90,17 @@ function renderFolders() {
   all.addEventListener("click", () => selectFolder("全部"));
   list.append(all);
 
-  for (const folder of folders) {
+  const sorted = [...folders].sort((a, b) => a.localeCompare(b, "zh-CN"));
+
+  for (const folder of sorted) {
+    const depth = folderDepth(folder);
     const button = document.createElement("button");
     button.type = "button";
     button.className = `folder-btn${selectedFolder === folder ? " active" : ""}`;
-    button.innerHTML = `<span></span><em></em>`;
-    button.querySelector("span").textContent = folder;
+    button.style.paddingLeft = `${10 + (depth - 1) * 16}px`;
+    button.title = folder;
+    button.innerHTML = `<span class="folder-label"></span><em></em>`;
+    button.querySelector(".folder-label").textContent = folderName(folder);
     button.querySelector("em").textContent = String(folderCount(folder));
 
     button.addEventListener("click", () => selectFolder(folder));
@@ -121,7 +136,7 @@ function renderFolders() {
       if (!confirm(`删除文件夹「${folder}」？（只能删除空文件夹）`)) return;
       try {
         await api(`/api/folders?name=${encodeURIComponent(folder)}`, { method: "DELETE" });
-        if (selectedFolder === folder) selectedFolder = "全部";
+        if (isInside(selectedFolder, folder)) selectedFolder = "全部";
         await loadLibrary();
         showToast("文件夹已删除。");
       } catch (error) {
@@ -140,9 +155,9 @@ function renderItems() {
   const query = $("#itemSearch").value.trim().toLowerCase();
 
   const visible = allItems()
-    .filter((item) => (selectedFolder === "全部" ? true : item.folder === selectedFolder))
+    .filter((item) => isInside(item.folder, selectedFolder))
     .filter((item) =>
-      !query ? true : [item.title, item.description, item.meta].join(" ").toLowerCase().includes(query)
+      !query ? true : [item.title, item.description, item.meta, item.folder].join(" ").toLowerCase().includes(query)
     )
     .sort((a, b) => String(b.date).localeCompare(String(a.date)));
 
@@ -158,10 +173,13 @@ function renderItems() {
     const row = document.createElement("article");
     row.className = "row";
     row.draggable = true;
-    row.dataset.kind = item.kind;
+    row.dataset.source = item.source;
     row.dataset.id = item.id;
     row.addEventListener("dragstart", (event) => {
-      event.dataTransfer.setData("text/plain", JSON.stringify({ kind: item.kind, id: item.id }));
+      event.dataTransfer.setData(
+        "text/plain",
+        JSON.stringify({ kind: item.moveKind, id: item.id })
+      );
       event.dataTransfer.effectAllowed = "move";
     });
 
@@ -173,15 +191,16 @@ function renderItems() {
     title.className = "row-title";
     title.textContent = item.title;
     title.addEventListener("click", () => {
-      if (item.kind === "note") openPost(item.id);
+      if (item.source === "post") openPost(item.id);
       else window.open(item.href, "_blank");
     });
 
     const meta = document.createElement("p");
     meta.className = "row-meta";
     meta.textContent = [
-      item.kind === "note" ? "笔记" : "文件",
+      item.kind === "note" ? "笔记" : "资料",
       item.meta,
+      item.folder,
       item.date,
       item.bytes ? `${(item.bytes / 1024).toFixed(0)} KB` : ""
     ]
@@ -203,7 +222,7 @@ function renderItems() {
     edit.type = "button";
     edit.textContent = "编辑";
     edit.addEventListener("click", () => {
-      if (item.kind === "note") openPost(item.id);
+      if (item.source === "post") openPost(item.id);
       else showToast("文件条目的标题请在「站点」或直接上传时设置；这里只支持移动和删除。");
     });
 
@@ -214,7 +233,7 @@ function renderItems() {
       if (!confirm(`删除「${item.title}」？本操作不可撤销。`)) return;
       try {
         const url =
-          item.kind === "note"
+          item.source === "post"
             ? `/api/post?id=${encodeURIComponent(item.id)}`
             : `/api/library?id=${encodeURIComponent(item.id)}`;
         await api(url, { method: "DELETE" });
@@ -257,10 +276,11 @@ async function loadLibrary() {
 function renderFolderOptions() {
   const select = $("#fFolder");
   select.innerHTML = "";
-  for (const folder of folders) {
+  const sorted = [...folders].sort((a, b) => a.localeCompare(b, "zh-CN"));
+  for (const folder of sorted) {
     const option = document.createElement("option");
     option.value = folder;
-    option.textContent = folder;
+    option.textContent = `${"— ".repeat(folderDepth(folder) - 1)}${folderName(folder)}`;
     select.append(option);
   }
 }
@@ -383,11 +403,13 @@ async function uploadFile(file) {
   }
 
   const folder = selectedFolder === "全部" ? "其他" : selectedFolder;
+  const kind = $("#uploadKind").value === "note" ? "note" : "material";
   const params = new URLSearchParams({
     name: file.name,
     title: file.name.replace(/\.[^.]+$/, ""),
     category: folder,
     folder,
+    kind,
     tags: ""
   });
 
@@ -583,16 +605,23 @@ function bindEvents() {
   $("#itemSearch").addEventListener("input", renderItems);
 
   $("#newFolder").addEventListener("click", async () => {
-    const name = prompt("新文件夹名称（例如：英语、竞赛）");
+    const parent = selectedFolder === "全部" ? "" : selectedFolder;
+    const name = prompt(
+      parent
+        ? `在「${parent}」下新建子文件夹，输入名称：`
+        : "新建顶层文件夹，输入名称："
+    );
     if (!name?.trim()) return;
+    const fullPath = parent ? `${parent}/${name.trim()}` : name.trim();
+
     try {
       await api("/api/folders", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name })
+        body: JSON.stringify({ name: fullPath })
       });
       await loadLibrary();
-      selectFolder(name.trim());
+      selectFolder(fullPath);
       showToast("文件夹已创建。");
     } catch (error) {
       showToast(error.message);

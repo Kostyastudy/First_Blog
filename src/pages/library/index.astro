@@ -18,7 +18,12 @@ const items = buildContentItems(posts, docs);
 const explicit = readFolderList();
 const folders = collectFolders(explicit, items.map((item) => item.folder));
 
-const roots = folders.filter((folder) => !folder.includes("/"));
+const roots = [
+  ...new Set([
+    ...readFolderList().filter((folder) => !folder.includes("/")),
+    ...folders.filter((folder) => !folder.includes("/"))
+  ])
+];
 const cards = roots.map((folder) => ({
   path: folder,
   name: folderName(folder),

@@ -19,7 +19,11 @@ const items = buildContentItems(posts, docs);
 const folders = collectFolders(readFolderList(), items.map((item) => item.folder));
 
 export async function getStaticPaths() {
-  return folders.map((folder) => ({
+  const [allPosts, allDocs] = await Promise.all([getSortedPosts(), getSortedDocs()]);
+  const allItems = buildContentItems(allPosts, allDocs);
+  const allFolders = collectFolders(readFolderList(), allItems.map((item) => item.folder));
+
+  return allFolders.map((folder) => ({
     params: { path: folder }
   }));
 }
