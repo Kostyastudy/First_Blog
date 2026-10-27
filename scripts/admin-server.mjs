@@ -5,7 +5,7 @@ import { createReadStream, existsSync } from "node:fs";
 import { copyFile, mkdir, mkdtemp, readFile, readdir, rm, stat, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { spawn } from "node:child_process";
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import AdmZip from "adm-zip";
 import matter from "gray-matter";
 import { markdownToHtml } from "satteri";
@@ -26,6 +26,7 @@ const postsDir = path.join(root, "src", "content", "posts");
 const libraryDir = path.join(root, "src", "content", "library");
 const pagesDir = path.join(root, "src", "content", "pages");
 const filesDir = path.join(root, "public", "files");
+const importedAssetsDir = path.join(root, "src", "assets", "imported");
 const inboxDir = path.join(root, "inbox");
 const configPath = path.join(root, "src", "config.ts");
 const foldersPath = path.join(root, "src", "data", "folders.json");
@@ -482,7 +483,8 @@ const imageExtensions = new Set([".png", ".jpg", ".jpeg", ".webp", ".gif", ".svg
 
 const cleanImageTarget = (value) => {
   let target = String(value ?? "").trim().replace(/^<|>$/g, "");
-  target = target.split(/\s+/)[0].split("#")[0].split("?")[0];
+  target = target.replace(/\s+"[^"]*"$/, "").replace(/\s+'[^']*'$/, "");
+  target = target.split("#")[0].split("?")[0];
   try {
     target = decodeURIComponent(target);
   } catch {
@@ -491,6 +493,14 @@ const cleanImageTarget = (value) => {
   return target.trim();
 };
 
+const safeAssetName = (value) => {
+  const extension = path.extname(value);
+  const base = path.basename(value, extension)
+    .replace(/[^\p{L}\p{N}._-]+/gu, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+  return `${base || "image"}${extension.toLowerCase()}`;
+};
 const extractImageRefs = (markdown) => {
   const refs = [];
   let match;
@@ -518,8 +528,30 @@ async function scanFolderNotes(directory) {
   if (!info.isDirectory()) throw new Error("路径不是文件夹");
 
   const files = await walkFiles(directory);
-  const imageFiles = files.filter((file) => imageExtensions.has(path.extname(file.relative).toLowerCase()));
   const markdownFiles = files.filter((file) => file.relative.toLowerCase().endsWith(".md"));
+
+  // Obsidian often keeps attachments in the vault root. Look one or two
+  // levels above the selected notes folder as well.
+  const ancestorImages = [];
+  let ancestor = path.dirname(directory);
+  for (let depth = 0; depth < 2; depth += 1) {
+    if (!ancestor || path.dirname(ancestor) === ancestor) break;
+    for (const entry of await readdir(ancestor, { withFileTypes: true })) {
+      if (!entry.isFile()) continue;
+      if (!imageExtensions.has(path.extname(entry.name).toLowerCase())) continue;
+      const full = path.join(ancestor, entry.name);
+      ancestorImages.push({
+        full,
+        relative: path.relative(directory, full).replaceAll("\\", "/")
+      });
+    }
+    ancestor = path.dirname(ancestor);
+  }
+
+  const imageFiles = [
+    ...files.filter((file) => imageExtensions.has(path.extname(file.relative).toLowerCase())),
+    ...ancestorImages
+  ];
 
   const byPath = new Map(imageFiles.map((file) => [file.relative.toLowerCase(), file.full]));
   const byBase = new Map();
@@ -582,37 +614,29 @@ async function importFolderNotes(directory, folder, overwrite) {
     const slug = overwrite
       ? note.slug
       : await uniqueSlug(path.basename(note.file, path.extname(note.file)), postsDir);
-    const postDir = path.join(postsDir, slug);
-    await mkdir(postDir, { recursive: true });
-
     const assetNames = new Map();
-    const usedNames = new Set();
     let body = parsed.content;
     let copied = 0;
 
     for (const ref of note.refs) {
       if (!ref.file) continue;
-      let name = path.basename(ref.file);
-      const key = name.toLowerCase();
-      if (usedNames.has(key)) {
-        const extension = path.extname(name);
-        name = `${path.basename(name, extension)}-${usedNames.size + 1}${extension}`;
-      }
-      usedNames.add(name.toLowerCase());
 
       let assetName = assetNames.get(ref.file);
       if (!assetName) {
-        assetName = name;
+        const buffer = await readFile(ref.file);
+        const hash = createHash("sha1").update(buffer).digest("hex").slice(0, 12);
+        assetName = `${hash}${path.extname(ref.file).toLowerCase()}`;
         assetNames.set(ref.file, assetName);
-        const destination = path.join(postDir, "assets", assetName);
-        await mkdir(path.dirname(destination), { recursive: true });
-        await copyFile(ref.file, destination);
+        const destination = path.join(importedAssetsDir, assetName);
+        await mkdir(importedAssetsDir, { recursive: true });
+        if (!existsSync(destination)) await copyFile(ref.file, destination);
         copied += 1;
       }
 
+      const alt = ref.alt && !/^\d+$/.test(ref.alt) ? ref.alt : "";
       body = body.replaceAll(
         ref.raw,
-        `![${ref.alt || assetName}](<assets/${assetName}>)`
+        `![${alt}](../../assets/imported/${assetName})`
       );
     }
 
@@ -622,7 +646,10 @@ async function importFolderNotes(directory, folder, overwrite) {
       folder,
       kind: "note",
       pubDate: parsed.data.pubDate || today(),
-      category: parsed.data.category || folder
+      category:
+        parsed.data.category && !String(parsed.data.category).includes("/")
+          ? parsed.data.category
+          : folder.split("/")[0] || folder
     });
 
     await writeFile(path.join(postsDir, `${slug}.md`), output, "utf8");
@@ -701,7 +728,7 @@ async function handleNoteBundle(req, res, url, folder) {
         const asset = findAsset(target);
         if (!asset) return label || target;
 
-        const name = path.basename(asset.relative);
+        const name = safeAssetName(asset.relative);
         const destination = path.join(postDir, "assets", name);
         await mkdir(path.dirname(destination), { recursive: true });
         await copyFile(asset.full, destination);
@@ -720,7 +747,10 @@ async function handleNoteBundle(req, res, url, folder) {
       folder,
       kind: "note",
       pubDate: parsed.data.pubDate || today(),
-      category: parsed.data.category || folder
+      category:
+        parsed.data.category && !String(parsed.data.category).includes("/")
+          ? parsed.data.category
+          : folder.split("/")[0] || folder
     });
 
     await writeFile(path.join(postsDir, `${slug}.md`), output, "utf8");
@@ -775,7 +805,10 @@ async function handleUpload(req, res, url) {
       folder,
       kind: "note",
       pubDate: parsed.data.pubDate || today(),
-      category: parsed.data.category || folder
+      category:
+        parsed.data.category && !String(parsed.data.category).includes("/")
+          ? parsed.data.category
+          : folder.split("/")[0] || folder
     });
 
     await writeFile(path.join(postsDir, `${slug}.md`), output, "utf8");
