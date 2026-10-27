@@ -1,5 +1,11 @@
-# 投放目录
-
+---
+title: "投放目录"
+description: "投放目录 把要发布的文件放在这里，然后运行： - .md：Markdown 笔记，会自动补 frontmatter、压缩图片、转换 Obsidian 链接。 - .pdf：自动复制到 public/f…"
+pubDate: 2026-10-26
+category: "README.md"
+tags: []
+importSource: "README.md"
+---
 把要发布的文件放在这里，然后运行：
 
 ```powershell
