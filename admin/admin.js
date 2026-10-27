@@ -406,7 +406,13 @@ async function uploadFile(file) {
   }
 
   const folder = selectedFolder === "全部" ? "其他" : selectedFolder;
-  const kind = $("#uploadKind").value === "note" ? "note" : "material";
+  const choice = $("#uploadKind").value;
+  const isBundle = choice === "bundle";
+  if (isBundle && !file.name.toLowerCase().endsWith(".zip")) {
+    showToast("笔记包必须是 .zip 文件");
+    return;
+  }
+  const kind = choice === "note" ? "note" : "material";
   const params = new URLSearchParams({
     name: file.name,
     title: file.name.replace(/\.[^.]+$/, ""),
@@ -415,12 +421,15 @@ async function uploadFile(file) {
     kind,
     tags: ""
   });
+  if (isBundle) params.set("bundle", "1");
 
   const response = await fetch(`/api/upload?${params}`, { method: "POST", body: file });
   const data = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(data.error || "上传失败");
 
-  if (data.kind === "post") {
+  if (data.kind === "bundle") {
+    showToast(`${file.name} 已作为笔记导入「${folder}」，图片已一起放入。`);
+  } else if (data.kind === "post") {
     showToast(`${file.name} 已作为笔记放到「${folder}」。`);
   } else if (data.kind === "inbox") {
     showToast(`${file.name} 已放入 inbox，请到「操作与日志」点「导入 inbox」。`);

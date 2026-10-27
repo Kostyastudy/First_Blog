@@ -1,14 +1,24 @@
 import http from "node:http";
 import net from "node:net";
+import os from "node:os";
 import { createReadStream, existsSync } from "node:fs";
-import { mkdir, readFile, readdir, stat, unlink, writeFile } from "node:fs/promises";
+import { copyFile, mkdir, mkdtemp, readFile, readdir, rm, stat, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { spawn } from "node:child_process";
 import { randomUUID } from "node:crypto";
+import AdmZip from "adm-zip";
 import matter from "gray-matter";
 import { markdownToHtml } from "satteri";
 import { katexPlugin } from "../src/plugins/katex.mjs";
-import { buildFrontmatter, firstHeading, splitTags, toSlug } from "./import-lib.mjs";
+import {
+  buildFrontmatter,
+  convertCallouts,
+  convertObsidianLinks,
+  firstHeading,
+  splitTags,
+  stripComments,
+  toSlug
+} from "./import-lib.mjs";
 
 const root = process.cwd();
 const adminDir = path.join(root, "admin");
@@ -464,6 +474,104 @@ async function serveFile(res, filePath) {
   createReadStream(filePath).pipe(res);
 }
 
+async function walkFiles(directory, base = directory) {
+  const result = [];
+  for (const entry of await readdir(directory, { withFileTypes: true })) {
+    if (entry.name === ".DS_Store") continue;
+    const full = path.join(directory, entry.name);
+    if (entry.isDirectory()) {
+      result.push(...(await walkFiles(full, base)));
+    } else if (entry.isFile()) {
+      result.push({ full, relative: path.relative(base, full).replaceAll("\\", "/") });
+    }
+  }
+  return result;
+}
+
+async function handleNoteBundle(req, res, url, folder) {
+  const buffer = await readBody(req, maxUpload);
+  const temp = await mkdtemp(path.join(os.tmpdir(), "dsh-note-bundle-"));
+
+  try {
+    const zip = new AdmZip(buffer);
+    zip.extractAllTo(temp, true);
+
+    const files = await walkFiles(temp);
+    const mdFiles = files.filter((file) => file.relative.toLowerCase().endsWith(".md"));
+    if (mdFiles.length === 0) {
+      sendJson(res, 400, { error: "压缩包里没有 .md 文件" });
+      return;
+    }
+
+    const mdFile = mdFiles[0];
+    const mdDir = path.dirname(mdFile.full);
+    const parsed = matter(await readFile(mdFile.full, "utf8"));
+    const baseName = path.basename(mdFile.relative, path.extname(mdFile.relative));
+    const title = String(parsed.data.title || firstHeading(parsed.content) || baseName).trim();
+    const slugBase = /^(note|index|readme)$/i.test(baseName) ? title : baseName;
+    const slug = await uniqueSlug(slugBase, postsDir);
+    const postDir = path.join(postsDir, slug);
+    await mkdir(postDir, { recursive: true });
+
+    // Keep the Markdown writer's relative image paths working.
+    for (const file of await walkFiles(mdDir)) {
+      if (file.relative.toLowerCase().endsWith(".md")) continue;
+      const target = path.join(postDir, file.relative);
+      await mkdir(path.dirname(target), { recursive: true });
+      await copyFile(file.full, target);
+    }
+
+    const findAsset = (target) => {
+      const normalized = target.replaceAll("\\", "/").toLowerCase();
+      return (
+        files.find((file) => file.relative.toLowerCase() === normalized) ??
+        files.find((file) => path.basename(file.relative).toLowerCase() === path.basename(normalized)) ??
+        null
+      );
+    };
+
+    let body = stripComments(parsed.content);
+    body = convertCallouts(body);
+    body = await convertObsidianLinks(body, {
+      image: async ({ target, label }) => {
+        const asset = findAsset(target);
+        if (!asset) return label || target;
+
+        const name = path.basename(asset.relative);
+        const destination = path.join(postDir, "assets", name);
+        await mkdir(path.dirname(destination), { recursive: true });
+        await copyFile(asset.full, destination);
+
+        const alt = label && !/^\d+$/.test(label) ? label : name;
+        return `![${alt}](<assets/${name}>)`;
+      },
+      pdf: async ({ target, label }) => label || target,
+      file: async ({ target, label }) => label || target,
+      note: async ({ target, label }) => label || target
+    });
+
+    const output = matter.stringify(body.trim() + "\n", {
+      ...parsed.data,
+      title,
+      folder,
+      kind: "note",
+      pubDate: parsed.data.pubDate || today(),
+      category: parsed.data.category || folder
+    });
+
+    await writeFile(path.join(postsDir, `${slug}.md`), output, "utf8");
+    sendJson(res, 200, {
+      kind: "bundle",
+      id: slug,
+      title,
+      folder,
+      ignoredNotes: mdFiles.length - 1
+    });
+  } finally {
+    await rm(temp, { recursive: true, force: true }).catch(() => {});
+  }
+}
+
 async function handleUpload(req, res, url) {
   const rawName = String(url.searchParams.get("name") || "upload.bin");
   const name = path.basename(rawName);
@@ -485,6 +593,11 @@ async function handleUpload(req, res, url) {
   await mkdir(inboxDir, { recursive: true });
 
   const folder = String(url.searchParams.get("folder") || "其他").trim();
+
+  if (extension === ".zip" && url.searchParams.get("bundle") === "1") {
+    await handleNoteBundle(req, res, url, folder);
+    return;
+  }
 
   if (extension === ".md") {
     const raw = (await readBody(req, maxUpload)).toString("utf8");
