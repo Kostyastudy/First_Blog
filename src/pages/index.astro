@@ -15,10 +15,13 @@ const posts = await getSortedPosts();
 const docs = await getSortedDocs();
 const items = buildContentItems(posts, docs);
 
-const folderCounts = folders
+const topFolders = folders.filter((folder) => !folder.includes("/"));
+const folderCounts = topFolders
   .map((name) => ({
     name,
-    count: items.filter((item) => item.folder === name).length
+    count: items.filter(
+      (item) => item.folder === name || item.folder.startsWith(`${name}/`)
+    ).length
   }))
   .filter((folder) => folder.count > 0);
 
@@ -148,7 +151,8 @@ const hasItems = items.length > 0;
     contentItems.forEach((item) => {
       const folder = item.dataset.folder ?? "";
       const searchable = item.dataset.search ?? "";
-      const matchesFolder = activeFolder === "all" || folder === activeFolder;
+      const matchesFolder =
+        activeFolder === "all" || folder === activeFolder || folder.startsWith(`${activeFolder}/`);
       const matchesQuery = !query || searchable.includes(query);
       const isVisible = matchesFolder && matchesQuery;
 

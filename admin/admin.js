@@ -350,7 +350,7 @@ async function savePost() {
     });
     editingId = result.id;
     await loadLibrary();
-    showToast("已保存。记得发布上线。");
+    showToast(`已保存到「${$("#fFolder").value || "其他"}」。记得发布上线。`);
   } catch (error) {
     showToast(error.message);
   }
@@ -417,7 +417,9 @@ async function uploadFile(file) {
   const data = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(data.error || "上传失败");
 
-  if (data.kind === "inbox") {
+  if (data.kind === "post") {
+    showToast(`${file.name} 已作为笔记放到「${folder}」。`);
+  } else if (data.kind === "inbox") {
     showToast(`${file.name} 已放入 inbox，请到「操作与日志」点「导入 inbox」。`);
   } else {
     showToast(`${file.name} 已放入「${folder}」。`);

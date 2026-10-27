@@ -8,7 +8,7 @@ import { randomUUID } from "node:crypto";
 import matter from "gray-matter";
 import { markdownToHtml } from "satteri";
 import { katexPlugin } from "../src/plugins/katex.mjs";
-import { buildFrontmatter, splitTags, toSlug } from "./import-lib.mjs";
+import { buildFrontmatter, firstHeading, splitTags, toSlug } from "./import-lib.mjs";
 
 const root = process.cwd();
 const adminDir = path.join(root, "admin");
@@ -484,11 +484,25 @@ async function handleUpload(req, res, url) {
   await mkdir(filesDir, { recursive: true });
   await mkdir(inboxDir, { recursive: true });
 
+  const folder = String(url.searchParams.get("folder") || "其他").trim();
+
   if (extension === ".md") {
-    const slug = await uniqueSlug(name.replace(/\.md$/i, ""), inboxDir);
-    const target = path.join(inboxDir, `${slug}.md`);
-    await writeFile(target, await readBody(req, maxUpload));
-    sendJson(res, 200, { kind: "inbox", file: `inbox/${slug}.md` });
+    const raw = (await readBody(req, maxUpload)).toString("utf8");
+    const parsed = matter(raw);
+    const fallbackTitle = name.replace(/\.md$/i, "");
+    const title = String(parsed.data.title || firstHeading(parsed.content) || fallbackTitle).trim();
+    const slug = await uniqueSlug(fallbackTitle, postsDir);
+    const output = matter.stringify(parsed.content.replace(/^\n+/, ""), {
+      ...parsed.data,
+      title,
+      folder,
+      kind: "note",
+      pubDate: parsed.data.pubDate || today(),
+      category: parsed.data.category || folder
+    });
+
+    await writeFile(path.join(postsDir, `${slug}.md`), output, "utf8");
+    sendJson(res, 200, { kind: "post", id: slug, folder, title });
     return;
   }
 
@@ -511,7 +525,6 @@ async function handleUpload(req, res, url) {
   const fileUrl = `/files/${baseSlug}${extension}`;
   const title = String(url.searchParams.get("title") || name.replace(/\.[^.]+$/, "")).trim();
   const category = String(url.searchParams.get("category") || "资料").trim();
-  const folder = String(url.searchParams.get("folder") || "其他").trim();
   const kind = url.searchParams.get("kind") === "note" ? "note" : "material";
   const tags = splitTags(url.searchParams.get("tags") || "");
 
