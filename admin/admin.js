@@ -587,6 +587,124 @@ async function saveAbout() {
   }
 }
 
+let folderScan = null;
+
+const targetFolder = () => (selectedFolder === "全部" ? "其他" : selectedFolder);
+
+function openFolderModal() {
+  const input = $("#folderPath");
+  if (!input.value) {
+    input.value = localStorage.getItem("last-folder-import") || "C:\\Users\\29459\\Documents\\资料";
+  }
+  $("#folderTarget").textContent = `导入到：「${targetFolder()}」`;
+  $("#folderResults").innerHTML = "";
+  $("#folderImportConfirm").disabled = true;
+  folderScan = null;
+  $("#folderModal").hidden = false;
+  input.focus();
+}
+
+function closeFolderModal() {
+  $("#folderModal").hidden = true;
+}
+
+function renderFolderScan(scan) {
+  const results = $("#folderResults");
+  results.innerHTML = "";
+  const missingTotal = scan.notes.reduce((sum, note) => sum + note.missing.length, 0);
+  const conflicts = scan.notes.filter((note) => note.conflict).length;
+
+  const summary = document.createElement("p");
+  summary.textContent = [
+    `文件夹：${scan.directory}`,
+    `笔记 ${scan.notes.length} 篇`,
+    `图片文件 ${scan.imageCount} 张`,
+    missingTotal ? `缺失 ${missingTotal} 个引用` : "图片引用都能找到",
+    conflicts ? `同名冲突 ${conflicts} 篇` : ""
+  ]
+    .filter(Boolean)
+    .join(" · ");
+  results.append(summary);
+
+  if (scan.notes.length === 0) {
+    const empty = document.createElement("p");
+    empty.textContent = "这个文件夹里没有 .md 文件。";
+    results.append(empty);
+    return;
+  }
+
+  const list = document.createElement("ul");
+  for (const note of scan.notes) {
+    const item = document.createElement("li");
+    const name = document.createElement("strong");
+    name.textContent = note.title;
+    item.append(name);
+
+    const meta = document.createElement("span");
+    meta.textContent = ` · ${note.relative} · ${note.imageCount} 张图`;
+    if (note.conflict) meta.textContent += " · 已存在同名笔记";
+    item.append(meta);
+
+    if (note.missing.length > 0) {
+      const missing = document.createElement("div");
+      missing.className = "missing";
+      missing.textContent = `缺图：${note.missing.join("、")}`;
+      item.append(missing);
+    }
+
+    list.append(item);
+  }
+  results.append(list);
+}
+
+async function scanImportFolder() {
+  const path = $("#folderPath").value.trim();
+  if (!path) return showToast("请先填写本地文件夹路径");
+
+  $("#folderScanBtn").disabled = true;
+  $("#folderScanBtn").textContent = "扫描中…";
+
+  try {
+    const scan = await api("/api/folder-scan", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ path })
+    });
+    folderScan = scan;
+    localStorage.setItem("last-folder-import", path);
+    renderFolderScan(scan);
+    $("#folderImportConfirm").disabled = scan.notes.length === 0;
+  } catch (error) {
+    showToast(error.message);
+  } finally {
+    $("#folderScanBtn").disabled = false;
+    $("#folderScanBtn").textContent = "1. 扫描并检查图片";
+  }
+}
+
+async function importScannedFolder() {
+  if (!folderScan) return showToast("请先扫描文件夹");
+  const path = $("#folderPath").value.trim();
+  const folder = targetFolder();
+  const overwrite = $("#folderOverwrite").checked;
+
+  $("#folderImportConfirm").disabled = true;
+  try {
+    const result = await api("/api/folder-import", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ path, folder, overwrite })
+    });
+    await loadLibrary();
+    selectFolder(folder);
+    closeFolderModal();
+    showToast(`已导入 ${result.imported.length} 篇笔记到「${folder}」。记得发布上线。`);
+  } catch (error) {
+    showToast(error.message);
+    $("#folderImportConfirm").disabled = false;
+  }
+}
+
 function switchTab(tab) {
   $$(".nav").forEach((button) => button.classList.toggle("active", button.dataset.tab === tab));
   $$(".panel").forEach((panel) => panel.classList.toggle("hidden", panel.id !== `panel-${tab}`));
@@ -662,6 +780,17 @@ function bindEvents() {
   });
 
   $("#itemSearch").addEventListener("input", renderItems);
+
+  $("#folderImportBtn").addEventListener("click", openFolderModal);
+  $("#folderModalClose").addEventListener("click", closeFolderModal);
+  $("#folderScanBtn").addEventListener("click", scanImportFolder);
+  $("#folderImportConfirm").addEventListener("click", importScannedFolder);
+  $("#folderModal").addEventListener("click", (event) => {
+    if (event.target === $("#folderModal")) closeFolderModal();
+  });
+  window.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && !$("#folderModal").hidden) closeFolderModal();
+  });
 
   $("#newFolder").addEventListener("click", async () => {
     const parent = selectedFolder === "全部" ? "" : selectedFolder;

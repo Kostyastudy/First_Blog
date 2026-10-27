@@ -478,10 +478,170 @@ async function serveFile(res, filePath) {
   createReadStream(filePath).pipe(res);
 }
 
+const imageExtensions = new Set([".png", ".jpg", ".jpeg", ".webp", ".gif", ".svg", ".avif"]);
+
+const cleanImageTarget = (value) => {
+  let target = String(value ?? "").trim().replace(/^<|>$/g, "");
+  target = target.split(/\s+/)[0].split("#")[0].split("?")[0];
+  try {
+    target = decodeURIComponent(target);
+  } catch {
+    // keep the original target when it is not valid percent-encoding
+  }
+  return target.trim();
+};
+
+const extractImageRefs = (markdown) => {
+  const refs = [];
+  let match;
+  const wiki = /!\[\[([^\]|#]+)(?:#[^\]|]+)?(?:\|([^\]]+))?\]\]/g;
+  while ((match = wiki.exec(markdown))) {
+    refs.push({ raw: match[0], target: match[1], alt: match[2] || "", obsidian: true });
+  }
+  const standard = /!\[([^\]]*)\]\(([^)]+)\)/g;
+  while ((match = standard.exec(markdown))) {
+    refs.push({ raw: match[0], target: match[2], alt: match[1], obsidian: false });
+  }
+
+  return refs
+    .map((ref) => ({ ...ref, target: cleanImageTarget(ref.target) }))
+    .filter(
+      (ref) =>
+        ref.target &&
+        !/^(https?:|data:)/i.test(ref.target) &&
+        imageExtensions.has(path.extname(ref.target).toLowerCase())
+    );
+};
+
+async function scanFolderNotes(directory) {
+  const info = await stat(directory);
+  if (!info.isDirectory()) throw new Error("路径不是文件夹");
+
+  const files = await walkFiles(directory);
+  const imageFiles = files.filter((file) => imageExtensions.has(path.extname(file.relative).toLowerCase()));
+  const markdownFiles = files.filter((file) => file.relative.toLowerCase().endsWith(".md"));
+
+  const byPath = new Map(imageFiles.map((file) => [file.relative.toLowerCase(), file.full]));
+  const byBase = new Map();
+  for (const file of imageFiles) {
+    const base = path.basename(file.relative).toLowerCase();
+    const list = byBase.get(base) ?? [];
+    list.push(file.full);
+    byBase.set(base, list);
+  }
+
+  const resolveImage = (mdFile, target) => {
+    const direct = path.isAbsolute(target)
+      ? target
+      : path.resolve(path.dirname(mdFile.full), target);
+    if (existsSync(direct)) return direct;
+
+    const relative = path.relative(directory, direct).replaceAll("\\", "/").toLowerCase();
+    if (byPath.has(relative)) return byPath.get(relative);
+
+    return byBase.get(path.basename(target).toLowerCase())?.[0] ?? null;
+  };
+
+  const notes = [];
+  for (const mdFile of markdownFiles) {
+    const raw = await readFile(mdFile.full, "utf8");
+    const parsed = matter(raw);
+    const title = String(
+      parsed.data.title || firstHeading(parsed.content) || path.basename(mdFile.relative, ".md")
+    ).trim();
+    const slug = toSlug(path.basename(mdFile.relative, path.extname(mdFile.relative)));
+    const refs = extractImageRefs(parsed.content).map((ref) => ({
+      ...ref,
+      file: resolveImage(mdFile, ref.target)
+    }));
+    const missing = refs.filter((ref) => !ref.file).map((ref) => ref.target);
+
+    notes.push({
+      file: mdFile.full,
+      relative: mdFile.relative,
+      title,
+      slug,
+      imageCount: refs.length,
+      missing,
+      conflict: existsSync(path.join(postsDir, `${slug}.md`)),
+      refs
+    });
+  }
+
+  return { directory, imageCount: imageFiles.length, notes };
+}
+
+async function importFolderNotes(directory, folder, overwrite) {
+  const scan = await scanFolderNotes(directory);
+  const imported = [];
+
+  for (const note of scan.notes) {
+    const raw = await readFile(note.file, "utf8");
+    const parsed = matter(raw);
+    const existing = existsSync(path.join(postsDir, `${note.slug}.md`));
+    const slug = overwrite
+      ? note.slug
+      : await uniqueSlug(path.basename(note.file, path.extname(note.file)), postsDir);
+    const postDir = path.join(postsDir, slug);
+    await mkdir(postDir, { recursive: true });
+
+    const assetNames = new Map();
+    const usedNames = new Set();
+    let body = parsed.content;
+    let copied = 0;
+
+    for (const ref of note.refs) {
+      if (!ref.file) continue;
+      let name = path.basename(ref.file);
+      const key = name.toLowerCase();
+      if (usedNames.has(key)) {
+        const extension = path.extname(name);
+        name = `${path.basename(name, extension)}-${usedNames.size + 1}${extension}`;
+      }
+      usedNames.add(name.toLowerCase());
+
+      let assetName = assetNames.get(ref.file);
+      if (!assetName) {
+        assetName = name;
+        assetNames.set(ref.file, assetName);
+        const destination = path.join(postDir, "assets", assetName);
+        await mkdir(path.dirname(destination), { recursive: true });
+        await copyFile(ref.file, destination);
+        copied += 1;
+      }
+
+      body = body.replaceAll(
+        ref.raw,
+        `![${ref.alt || assetName}](<assets/${assetName}>)`
+      );
+    }
+
+    const output = matter.stringify(body.trim() + "\n", {
+      ...parsed.data,
+      title: note.title,
+      folder,
+      kind: "note",
+      pubDate: parsed.data.pubDate || today(),
+      category: parsed.data.category || folder
+    });
+
+    await writeFile(path.join(postsDir, `${slug}.md`), output, "utf8");
+    imported.push({
+      id: slug,
+      title: note.title,
+      images: copied,
+      missing: note.missing,
+      overwritten: existing && overwrite
+    });
+  }
+
+  return imported;
+}
+
 async function walkFiles(directory, base = directory) {
   const result = [];
   for (const entry of await readdir(directory, { withFileTypes: true })) {
-    if (entry.name === ".DS_Store") continue;
+    if ([".DS_Store", "node_modules", ".git", ".obsidian"].includes(entry.name)) continue;
     const full = path.join(directory, entry.name);
     if (entry.isDirectory()) {
       result.push(...(await walkFiles(full, base)));
@@ -820,6 +980,28 @@ async function handleApi(req, res, url) {
     }
     await stopDevServer();
     sendJson(res, 200, { running: await portOpen(sitePort) });
+    return;
+  }
+
+  if (req.method === "POST" && pathname === "/api/folder-scan") {
+    const payload = JSON.parse((await readBody(req)).toString("utf8"));
+    const scan = await scanFolderNotes(String(payload.path || ""));
+    sendJson(res, 200, {
+      directory: scan.directory,
+      imageCount: scan.imageCount,
+      notes: scan.notes.map(({ file, refs, ...rest }) => rest)
+    });
+    return;
+  }
+
+  if (req.method === "POST" && pathname === "/api/folder-import") {
+    const payload = JSON.parse((await readBody(req)).toString("utf8"));
+    const imported = await importFolderNotes(
+      String(payload.path || ""),
+      String(payload.folder || "其他"),
+      Boolean(payload.overwrite)
+    );
+    sendJson(res, 200, { imported });
     return;
   }
 

@@ -44,6 +44,7 @@
                   <h1 id="folderTitle">全部内容</h1>
                 </div>
                 <div class="head-actions">
+                  <button class="ghost" id="folderImportBtn">从文件夹导入</button>
                   <button class="ghost" id="newNote">新建笔记</button>
                   <button class="primary" id="uploadBtn">上传文件</button>
                 </div>
@@ -184,6 +185,34 @@
           <pre class="log" id="jobLog">等待操作…</pre>
         </section>
       </main>
+    </div>
+
+    <div class="modal" id="folderModal" hidden>
+      <div class="modal-card">
+        <div class="modal-head">
+          <h2>从文件夹导入带图笔记</h2>
+          <button class="mini" id="folderModalClose">关闭</button>
+        </div>
+
+        <label class="field">
+          <span>本地文件夹路径</span>
+          <input id="folderPath" type="text" placeholder="C:\Users\29459\Documents\资料\某门课" />
+        </label>
+        <p class="hint">会扫描文件夹内所有 .md，按笔记里的图片链接在同目录和子目录里查找图片。</p>
+
+        <label class="checkbox-row">
+          <input id="folderOverwrite" type="checkbox" checked />
+          覆盖同名笔记（不勾选则生成新副本）
+        </label>
+        <p class="hint" id="folderTarget"></p>
+
+        <div class="modal-actions">
+          <button class="ghost" id="folderScanBtn">1. 扫描并检查图片</button>
+          <button class="primary" id="folderImportConfirm" disabled>2. 导入这些笔记</button>
+        </div>
+
+        <div class="folder-results" id="folderResults"></div>
+      </div>
     </div>
 
     <div class="toast" id="toast" hidden></div>
