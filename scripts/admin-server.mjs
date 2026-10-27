@@ -297,7 +297,11 @@ async function readAbout() {
 async function saveAbout(payload) {
   const links = Array.isArray(payload.links)
     ? payload.links
-        .map((link) => ({ label: String(link.label ?? "").trim(), url: String(link.url ?? "").trim() }))
+        .map((link) => ({
+          label: String(link.label ?? "").trim(),
+          url: String(link.url ?? "").trim(),
+          type: link.type === "text" ? "text" : "link"
+        }))
         .filter((link) => link.label && link.url)
     : [];
 

@@ -2570,3 +2570,35 @@ body::before {
   font-size: 0.72rem;
   min-height: 28px;
 }
+
+.about-link--copy {
+  cursor: default;
+}
+
+.about-link--copy .about-link__label {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.about-link--copy code {
+  padding: 1px 6px;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  background: var(--paper-bright);
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+}
+
+.copy-button {
+  padding: 2px 8px;
+  border: 1px solid var(--line-strong);
+  border-radius: 3px;
+  background: transparent;
+  color: var(--ink-soft);
+  font-size: 0.72rem;
+}
+
+.copy-button:hover {
+  border-color: var(--coral);
+  color: var(--coral);
+}

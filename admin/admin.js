@@ -484,7 +484,7 @@ async function handleFiles(fileList) {
   }
 }
 
-function addLinkRow(link = { label: "", url: "" }) {
+function addLinkRow(link = { label: "", url: "", type: "" }) {
   const row = document.createElement("div");
   row.className = "link-row";
 
@@ -495,8 +495,16 @@ function addLinkRow(link = { label: "", url: "" }) {
 
   const url = document.createElement("input");
   url.className = "link-url";
-  url.placeholder = "https://... 或 mailto:...";
+  url.placeholder = "https://... 或 邮箱地址";
   url.value = link.url;
+
+  const type = document.createElement("select");
+  type.className = "link-type";
+  type.innerHTML = `<option value="link">跳转链接</option><option value="text">显示文本（可复制）</option>`;
+  type.value =
+    link.type === "text" || (!link.type && link.url && !/^https?:\/\//i.test(link.url))
+      ? "text"
+      : "link";
 
   const remove = document.createElement("button");
   remove.type = "button";
@@ -504,7 +512,7 @@ function addLinkRow(link = { label: "", url: "" }) {
   remove.textContent = "移除";
   remove.addEventListener("click", () => row.remove());
 
-  row.append(label, url, remove);
+  row.append(label, url, type, remove);
   $("#aboutLinks").append(row);
 }
 
@@ -558,7 +566,8 @@ async function saveSettings() {
 async function saveAbout() {
   const links = $$(".link-row").map((row) => ({
     label: row.querySelector(".link-label").value.trim(),
-    url: row.querySelector(".link-url").value.trim()
+    url: row.querySelector(".link-url").value.trim(),
+    type: row.querySelector(".link-type").value
   }));
 
   try {

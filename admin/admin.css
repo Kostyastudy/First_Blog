@@ -590,7 +590,7 @@ select {
 
 .link-row {
   display: grid;
-  grid-template-columns: minmax(0, 0.7fr) minmax(0, 1.3fr) auto;
+  grid-template-columns: minmax(0, 0.55fr) minmax(0, 1.15fr) 130px auto;
   gap: 10px;
   margin-top: 10px;
 }

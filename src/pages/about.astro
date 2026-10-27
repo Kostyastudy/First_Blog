@@ -26,15 +26,49 @@ const { Content } = await render(entry);
       entry.data.links.length > 0 && (
         <div class="about-links">
           <p class="eyebrow">Links</p>
-          {entry.data.links.map((link) => (
-            <a class="about-link" href={link.url} target={link.url.startsWith("mailto:") ? undefined : "_blank"} rel="noreferrer">
-              <Mail size={16} stroke-width={1.8} aria-hidden="true" />
-              {link.label}
-              <ArrowUpRight size={14} stroke-width={1.8} aria-hidden="true" />
-            </a>
-          ))}
+          {entry.data.links.map((link) => {
+            const isText = link.type === "text" || link.url.startsWith("mailto:");
+            const value = link.url.replace(/^mailto:/, "");
+
+            if (isText) {
+              return (
+                <div class="about-link about-link--copy">
+                  <Mail size={16} stroke-width={1.8} aria-hidden="true" />
+                  <span class="about-link__label">{link.label}</span>
+                  <code>{value}</code>
+                  <button class="copy-button" type="button" data-copy={value}>
+                    复制
+                  </button>
+                </div>
+              );
+            }
+
+            return (
+              <a class="about-link" href={link.url} target="_blank" rel="noreferrer">
+                <Mail size={16} stroke-width={1.8} aria-hidden="true" />
+                {link.label}
+                <ArrowUpRight size={14} stroke-width={1.8} aria-hidden="true" />
+              </a>
+            );
+          })}
         </div>
       )
     }
   </section>
 </BaseLayout>
+
+<script>
+  document.querySelectorAll<HTMLButtonElement>("[data-copy]").forEach((button) => {
+    button.addEventListener("click", async () => {
+      const value = button.dataset.copy ?? "";
+      try {
+        await navigator.clipboard.writeText(value);
+        button.textContent = "已复制";
+        window.setTimeout(() => (button.textContent = "复制"), 1500);
+      } catch {
+        button.textContent = "复制失败";
+        window.setTimeout(() => (button.textContent = "复制"), 1500);
+      }
+    });
+  });
+</script>

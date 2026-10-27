@@ -55,7 +55,8 @@ const pages = defineCollection({
       .array(
         z.object({
           label: z.string(),
-          url: z.string()
+          url: z.string(),
+          type: z.enum(["link", "text"]).default("link")
         })
       )
       .default([])
