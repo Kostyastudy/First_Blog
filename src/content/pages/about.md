@@ -14,6 +14,9 @@ links:
   - label: 知乎主页
     url: 'https://www.zhihu.com/people/zhipziqfx21'
     type: link
+  - label: Bilibili
+    url: 'https://space.bilibili.com/51940826'
+    type: link
 ---
 这里记录课程笔记、学习资料和一些阶段性的思考，按学科整理，持续更新。
 
