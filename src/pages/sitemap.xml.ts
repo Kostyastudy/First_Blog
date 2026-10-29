@@ -26,8 +26,8 @@ export const GET: APIRoute = async ({ site }) => {
     { loc: "/about" },
     ...posts.map((post) => ({ loc: `/notes/${post.id}`, lastmod: post.data.updatedDate ?? post.data.pubDate })),
     ...docs.map((doc) => ({ loc: `/library/${doc.id}`, lastmod: doc.data.pubDate })),
-    ...Array.from(tags).map((tag) => ({ loc: `/tags/${encodeURIComponent(tag)}` })),
-    ...categories.map((category) => ({ loc: `/categories/${encodeURIComponent(category.name)}` }))
+    ...Array.from(tags).map((tag) => ({ loc: `/tags/${tag.split("/").map(encodeURIComponent).join("/")}` })),
+    ...categories.map((category) => ({ loc: `/categories/${category.name.split("/").map(encodeURIComponent).join("/")}` }))
   ];
 
   const body = urls

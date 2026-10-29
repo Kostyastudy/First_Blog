@@ -21,7 +21,7 @@ const categories = getAllCategories(posts);
           <li class="doc-row">
             <Folder size={20} stroke-width={1.6} aria-hidden="true" />
             <div class="doc-row__body">
-              <a class="doc-row__title" href={`/categories/${encodeURIComponent(category.name)}`}>
+              <a class="doc-row__title" href={`/categories/${category.name.split("/").map(encodeURIComponent).join("/")}`}>
                 {category.name}
               </a>
               <p class="doc-row__meta">{category.count} 篇笔记</p>
