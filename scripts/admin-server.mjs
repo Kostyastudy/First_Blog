@@ -27,6 +27,10 @@ const libraryDir = path.join(root, "src", "content", "library");
 const pagesDir = path.join(root, "src", "content", "pages");
 const filesDir = path.join(root, "public", "files");
 const importedAssetsDir = path.join(root, "src", "assets", "imported");
+const libreOfficeNode =
+  "C:\\Users\\29459\\AppData\\Local\\Programs\\DeepSeek Harness\\resources\\runtime\\primary-runtime\\dependencies\\node\\bin\\node.exe";
+const libreOfficeCli =
+  "C:\\Users\\29459\\AppData\\Local\\Programs\\DeepSeek Harness\\resources\\app.asar.unpacked\\dsh\\node_modules\\@deepseek-ai\\libreoffice-kit\\lib\\cli.js";
 const inboxDir = path.join(root, "inbox");
 const configPath = path.join(root, "src", "config.ts");
 const foldersPath = path.join(root, "src", "data", "folders.json");
@@ -766,8 +770,43 @@ async function handleNoteBundle(req, res, url, folder) {
   }
 }
 
-async function handleUpload(req, res, url) {
-  const rawName = String(url.searchParams.get("name") || "upload.bin");
+function convertOfficeToPdf(input, output) {
+  return new Promise((resolve, reject) => {
+    const child = spawn(
+      libreOfficeNode,
+      [libreOfficeCli, "convert", "--input", input, "--output", output],
+      { stdio: "ignore" }
+    );
+    const timer = setTimeout(() => {
+      child.kill();
+      reject(new Error("Office 转 PDF 超时"));
+    }, 120000);
+
+    child.on("error", (error) => {
+      clearTimeout(timer);
+      reject(error);
+    });
+    child.on("exit", async (code) => {
+      clearTimeout(timer);
+      if (code !== 0) {
+        reject(new Error(`Office 转 PDF 失败，退出码 ${code}`));
+        return;
+      }
+      try {
+        const buffer = await readFile(output);
+        if (buffer.length < 5 || buffer.subarray(0, 5).toString("ascii") !== "%PDF-") {
+          reject(new Error("生成的 PDF 文件无效"));
+          return;
+        }
+        resolve();
+      } catch (error) {
+        reject(error);
+      }
+    });
+  });
+}
+
+async function handleUpload(req, res, url) {  const rawName = String(url.searchParams.get("name") || "upload.bin");
   const name = path.basename(rawName);
   const extension = path.extname(name).toLowerCase();
   const allowed = new Set([".pdf", ".docx", ".doc", ".pptx", ".ppt", ".zip", ".md"]);
@@ -838,22 +877,38 @@ async function handleUpload(req, res, url) {
   const kind = url.searchParams.get("kind") === "note" ? "note" : "material";
   const tags = splitTags(url.searchParams.get("tags") || "");
 
+  let previewUrl = null;
+  if ([".docx", ".doc", ".pptx", ".ppt"].includes(extension)) {
+    const previewBase = await uniqueSlug(baseSlug, filesDir, ".pdf");
+    const previewPath = path.join(filesDir, `${previewBase}.pdf`);
+    try {
+      await convertOfficeToPdf(target, previewPath);
+      previewUrl = `/files/${previewBase}.pdf`;
+    } catch (error) {
+      await rm(previewPath, { force: true }).catch(() => {});
+      console.error(`Office preview conversion failed for ${name}: ${error.message}`);
+    }
+  }
+
+  const extra = [
+    `file: ${JSON.stringify(fileUrl)}`,
+    `bytes: ${size}`,
+    `folder: ${JSON.stringify(folder)}`,
+    `kind: ${JSON.stringify(kind)}`
+  ];
+  if (previewUrl) extra.push(`preview: ${JSON.stringify(previewUrl)}`);
+
   const frontmatter = buildFrontmatter({
     title,
     description: String(url.searchParams.get("description") || ""),
     date: today(),
     category,
     tags,
-    extra: [
-      `file: ${JSON.stringify(fileUrl)}`,
-      `bytes: ${size}`,
-      `folder: ${JSON.stringify(folder)}`,
-      `kind: ${JSON.stringify(kind)}`
-    ]
+    extra
   });
 
   await writeFile(path.join(libraryDir, `${baseSlug}.md`), `${frontmatter}上传于写作台，可在资料库中下载。\n`, "utf8");
-  sendJson(res, 200, { kind: "library", id: baseSlug, title, file: fileUrl, bytes: size });
+  sendJson(res, 200, { kind: "library", id: baseSlug, title, file: fileUrl, preview: previewUrl, bytes: size });
 }
 
 async function handleApi(req, res, url) {
